@@ -4,12 +4,16 @@ import pandas as pd
 import os
 from pathlib import Path
 import ffn
+import pytz
 import matplotlib.pyplot as plt
 os.environ["DISPLAY"] = ""
 try:
     cwd = Path(__file__).parents[0]
 except:
     cwd = Path.cwd()
+
+
+
 class WeighEqually(bt.Algo):
 
 # """
@@ -43,6 +47,7 @@ class WeighSpecified(bt.Algo):
 # Sets:
 # * weights
 # '''
+
     def __init__(self, **weights):
         super(WeighSpecified, self).__init__()
         self.weights = weights
@@ -51,19 +56,21 @@ class WeighSpecified(bt.Algo):
         # added copy to make sure these are not overwritten
         target.temp["weights"] = self.weights.copy()
         return True
+
+
 symbols = 'spy,agg,aapl'
 crypto_symbols = 'btc-usd,eth-usd'
+mix_symbols = 'spy,btc-usd'
 stock_data = bt.get(symbols, start= '2020-01-01')
 crypto_data = bt.get(crypto_symbols, start = '2020-01-01')
 
-data = bt.get(symbols, start = '2020-01-01')
-# if data.index.tzinfo == None:
-#     data.index = pd.to_datetime(data.index).tz_localize("UTC")
-data = bt.get(crypto_symbols, start ='2020-01-01', existing = data,)
-print(stock_data)
-print(crypto_data)
+crypto_data.join(stock_data, how='outer')
 
-stock_dic = {'spy': .45, 'agg': .05, 'btcusd': .50}
+#data= pd.concat([crypto_data, stock_data],axis=1, join = "inner")
+#print(stock_data)
+#print(crypto_data)
+
+stock_dic = {'spy': .45, 'agg': .05, 'aapl': .50}
 
 #%%
 strategy_test = bt.Strategy('s1', 
@@ -72,14 +79,15 @@ strategy_test = bt.Strategy('s1',
                             bt.algos.WeighSpecified(**stock_dic),
                             bt.algos.Rebalance()])
 
-test = bt.Backtest(strategy_test, data)
+test = bt.Backtest(strategy_test, stock_data)
 res = bt.run(test)
+print(res)
 #%%
 #bt.algos.WeighSpecified(**stock_dic),
 #%matplotlib inline
 res.plot()
 #plt.show()
 res.plot_security_weights()
-res.display()
+#res.display()
 print("end of file")
 

@@ -28,6 +28,5 @@ test = bt.Backtest(strategy_, data)
 results = bt.run(test)
 
 #results.display()
-print(results.display())
 #print(stock_list)
 #print(data)
