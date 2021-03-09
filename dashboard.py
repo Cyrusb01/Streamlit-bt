@@ -5,6 +5,9 @@ import numpy as np
 import plotly
 import matplotlib.pyplot as plt
 import bt
+from utils import fmtp, fmtpn
+from tabulate import tabulate
+
 
 st.set_page_config(layout="wide") #makes page wider 
 
@@ -113,6 +116,15 @@ if ( option == 'Chart'):
     df.dropna(how='all', axis=1, inplace=True) #delete null collumns
     df = df.dropna()
     st.dataframe(df)
+
+
+    key = results._get_backtest(0)
+    data = [['Year', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'YTD']]
+    for k in results[key].return_table.index:
+        r = results[key].return_table.loc[k].values
+        data.append([k] + [fmtpn(x) for x in r])
+    month_str = tabulate(data, headers='firstrow')
+    col2.text(month_str)
     
 elif ( option == 'Chart-Slider'):
     
