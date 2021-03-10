@@ -38,16 +38,22 @@ class WeighSpecified(bt.Algo):
 
 
 st.sidebar.write("Options")
-option = st.sidebar.selectbox("Select and option", ('Optomized', 'Chart', 'Chart-Slider'))
+option = st.sidebar.selectbox("Select and option", ('Chart', 'Optomized',  'Chart-Slider'))
 start_date = '2017-01-01'
 
 if ( option == 'Chart'):
     
+ #beta collumns and containers 
     col1_s, col2_s = st.sidebar.beta_columns(2)
-    col1, col2 = st.beta_columns(2)
+    col1, col2 = st.beta_columns((2, 1))
+    col1_header = col1.beta_container()
+    col2_header = col2.beta_container()
+    col1_graph  = col1.beta_container()
+    col2_graph  = col2.beta_container()
+    col1_second = col1.beta_container()
+    col2_second = col2.beta_container()
     
-    
-    #Sidebar Inputs
+ #Sidebar Inputs
     stock_choice_1 = col1_s.text_input( "Enter Ticker 1", value = 'SPY', max_chars= 8) #get ticker
     percent_1 = col2_s.text_input( "% Allocation", value = 55, max_chars= 3, ) # get percent
     stock_choice_1 = stock_choice_1.lower() #bt likes lower case 
@@ -73,26 +79,81 @@ if ( option == 'Chart'):
     stock_choice2 = stock_choice_2.replace('-', '')
     stock_choice3 = stock_choice_3.replace('-', '')
 
-    
-
+ #Buttons
+    rebalances = col1_graph.selectbox("Rebalancing Timeline", ('Daily', 'Monthly', 'Yearly', 'None'))
+ #creating strategy and backtest
     stock_list = stock_choice_1 +',' + stock_choice_2 + ',' + stock_choice_3 #list of tickers to get data for 
     stock_dic = {stock_choice_1: float(percent_1)/100, stock_choice_2: float(percent_2)/100, stock_choice3: float(percent_3)/100} #dictonary for strat
     
-    strategy_ = bt.Strategy('Strategy 1', 
+    stock_dic_control = {stock_choice_1: float(60)/100, stock_choice_2: float(40)/100, stock_choice_3: float(0)/100}
+    
+    strategy_ = bt.Strategy('Your Strategy Monthly', 
+                                [bt.algos.RunMonthly(), 
+                                bt.algos.SelectAll(), 
+                                bt.algos.WeighSpecified(**stock_dic),
+                                bt.algos.Rebalance()]) #Creating strategy
+    
+    if (rebalances == 'Daily'):
+        strategy_ = bt.Strategy('Your Strategy Daily', 
+                                [bt.algos.RunDaily(), 
+                                bt.algos.SelectAll(), 
+                                bt.algos.WeighSpecified(**stock_dic),
+                                bt.algos.Rebalance()]) #Creating strategy
+    elif (rebalances == 'Monthly'):
+        strategy_ = bt.Strategy('Your Strategy Monthly', 
+                                [bt.algos.RunMonthly(), 
+                                bt.algos.SelectAll(), 
+                                bt.algos.WeighSpecified(**stock_dic),
+                                bt.algos.Rebalance()]) #Creating strategy
+    elif (rebalances == 'Yearly'):
+        strategy_ = bt.Strategy('Your Strategy Yearly', 
+                                [bt.algos.RunYearly(), 
+                                bt.algos.SelectAll(), 
+                                bt.algos.WeighSpecified(**stock_dic),
+                                bt.algos.Rebalance()]) #Creating strategy
+    elif (rebalances == 'None'):
+        strategy_ = bt.Strategy('Your Strategy None', 
+                                [bt.algos.RunOnce(), 
+                                bt.algos.SelectAll(), 
+                                bt.algos.WeighSpecified(**stock_dic),
+                                bt.algos.Rebalance()]) #Creating strategy
+    
+    strategy_control = bt.Strategy('60-40 Monthly', 
                             [bt.algos.RunMonthly(), 
                             bt.algos.SelectAll(), 
-                            bt.algos.WeighSpecified(**stock_dic),
-                            bt.algos.Rebalance()]) #Creating strategy 
+                            bt.algos.WeighSpecified(**stock_dic_control),
+                            bt.algos.Rebalance()]) #Creating strategy
+    
+    test_control = bt.Backtest(strategy_control, data)
+    results_control = bt.run(test_control)
     
     test = bt.Backtest(strategy_, data)
     results = bt.run(test)
 
-    #line chart
+ #line chart
     ser = results._get_series(None).rebase()
-    col1.header("Returns Graph")
-    col1.line_chart(ser)
+    ser2 = results_control._get_series(None).rebase()
+    result_final = pd.concat([ser, ser2], axis=1)
+    col1_header.header("Returns Graph")
+    col1_graph.line_chart(result_final)
 
-    #pie chart 
+ #pie chart
+    if (rebalances == 'None'): #pie chart is wrong since no rebalances
+        key = results._get_backtest(0)
+        filter = None
+
+        if filter is not None:
+            data = results.backtests[key].security_weights[filter]
+        else:
+            data = results.backtests[key].security_weights
+
+        percent_1 = str(round(data[stock_choice1].iloc[-1]*100)) 
+        percent_2 = str(round(data[stock_choice2].iloc[-1]*100))
+        percent_3 = str(round(data[stock_choice3].iloc[-1]*100)) 
+        
+        st.dataframe(data)
+        
+
     labels = []
     labels.append(stock_choice_1.upper() + " " + percent_1 + "%")
     labels.append(stock_choice_2.upper() + " " + percent_2 + "%")
@@ -106,25 +167,26 @@ if ( option == 'Chart'):
     ax1.pie(percentages,  shadow=True, startangle=90)
     plt.legend( labels, loc="best")
     ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
-    col2.pyplot(fig)
+    col2_header.header("Pie Chart")
+    col2_header.pyplot(fig)
 
-    #Display Results
+ #Display Results
     string_res = results.to_csv(sep=',') #This creates string of results stats 
     df = pd.DataFrame([x.split(',') for x in string_res.split('\n')]) # Takes the string and creates a dataframe 
     nan_value = float("NaN") 
     df.replace("", nan_value, inplace=True) #lot of empty collumns in dataframe, this makes the empty go to null("NaN")
     df.dropna(how='all', axis=1, inplace=True) #delete null collumns
     df = df.dropna()
-    st.dataframe(df)
+    col2_second.dataframe(df)
 
-
+ #Display the Monthly Returns
     key = results._get_backtest(0)
     data = [['Year', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'YTD']]
     for k in results[key].return_table.index:
         r = results[key].return_table.loc[k].values
         data.append([k] + [fmtpn(x) for x in r])
     month_str = tabulate(data, headers='firstrow')
-    col2.text(month_str)
+    col1_second.text(month_str)
     
 elif ( option == 'Chart-Slider'):
     
@@ -171,23 +233,35 @@ elif ( option == 'Chart-Slider'):
     
     stock_list = stock_choice_1 +',' + stock_choice_2 + ',' + stock_choice_3 #list of tickers to get data for 
     stock_dic = {stock_choice_1: float(percent_1)/100, stock_choice_2: float(percent_2)/100, stock_choice_3: float(percent_3)/100} #dictonary for strat
+    stock_dic_control = {stock_choice_1: float(60)/100, stock_choice_2: float(40)/100, stock_choice_3: float(0)/100}
     
     strategy_ = bt.Strategy('Strategy 1', 
                             [bt.algos.RunMonthly(), 
                             bt.algos.SelectAll(), 
                             bt.algos.WeighSpecified(**stock_dic),
                             bt.algos.Rebalance()]) #Creating strategy 
+
+    strategy_control = bt.Strategy('60-40', 
+                            [bt.algos.RunMonthly(), 
+                            bt.algos.SelectAll(), 
+                            bt.algos.WeighSpecified(**stock_dic_control),
+                            bt.algos.Rebalance()]) #Creating strategy
+    
+    test_control = bt.Backtest(strategy_control, data)
+    results_control = bt.run(test_control)
     
     test = bt.Backtest(strategy_, data)
     results = bt.run(test)
 
-    #line chart
+ #line chart
     ser = results._get_series(None).rebase()
-    ser2 = results._get_series(None).rebase()
+    ser2 = results_control._get_series(None).rebase()
+    result_final = pd.concat([ser, ser2], axis=1)
+    #st.dataframe(result_final)
     row1_c1.header("Returns Graph")
-    row1_c1.line_chart(ser)
+    row1_c1.line_chart(result_final)
 
-    #Pie Chart Data 
+ #Pie Chart Data 
     labels = []
     labels.append(stock_choice_1.upper() + " " + str(percent_1) + "%")
     labels.append(stock_choice_2.upper() + " " + str(percent_2) + "%")
@@ -197,14 +271,14 @@ elif ( option == 'Chart-Slider'):
     percentages.append(percent_2)
     percentages.append(percent_3)
 
-    #Ploting the pie chart 
+ #Ploting the pie chart 
     fig, ax1 = plt.subplots()
     ax1.pie(percentages,  shadow=True, startangle=90)
     plt.legend( labels, loc="best")
     ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
     col2.pyplot(fig)
 
-    #Display Results
+ #Display Results
     string_res = results.to_csv(sep=',') #This creates string of results stats 
     df = pd.DataFrame([x.split(',') for x in string_res.split('\n')]) # Takes the string and creates a dataframe 
     nan_value = float("NaN") 
@@ -214,19 +288,28 @@ elif ( option == 'Chart-Slider'):
     st.dataframe(df)
 
 elif (option == "Optomized"):
-    symbols = 'spy,agg,aapl'
-    crypto_symbols = 'btc-usd,eth-usd'
-    mix_symbols = 'spy,btc-usd'
-    stock_data = bt.get(symbols, start= '2020-01-01')
-    crypto_data = bt.get(crypto_symbols, start = '2020-01-01')
-
-    data = crypto_data.join(stock_data, how='outer')
-    data = data.dropna()
-    st.dataframe(data)
     
-    st.dataframe(crypto_data)
-    st.dataframe(stock_data)
+    #Get data 
+    symbols = "spy,iwm,eem,efa,gld,agg,hyg"
+    crypto_symbols = "btc-usd,eth-usd"
+    etf_data = bt.get(symbols, start='1993-01-01')
+    crypto_data = bt.get(crypto_symbols, start='2016-01-01') 
 
+    #Merge into dataframe
+    data = crypto_data.join(etf_data, how='outer')
+    data = data.dropna()
+
+    #daily optimal
+    returns = data.to_log_returns().dropna()
+    daily_opt = returns.calc_mean_var_weights().as_format(".2%")
+    st.header("Optimal on Daily Data")
+    st.dataframe(daily_opt)
+
+    #Quarterly Optimal 
+    quarterly_rets= data.asfreq("Q",method='ffill').to_log_returns().dropna()
+    quart_opt = quarterly_rets.calc_mean_var_weights().as_format(".2%")
+    st.header("Optimal on Quarterly Data")
+    st.dataframe(quart_opt)
 
 
 
