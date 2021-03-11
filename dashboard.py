@@ -16,14 +16,14 @@ st.title(word)
 
 
 class WeighSpecified(bt.Algo):
-# '''
-# Sets temp['weights'] based on a provided dict of ticker:weights.
-# Sets the weights based on pre-specified targets.
-# Args:
-# * weights (dict): target weights -> ticker: weight
-# Sets:
-# * weights
-# '''
+ # '''
+ # Sets temp['weights'] based on a provided dict of ticker:weights.
+ # Sets the weights based on pre-specified targets.
+ # Args:
+ # * weights (dict): target weights -> ticker: weight
+ # Sets:
+ # * weights
+ # '''
     def __init__(self, **weights):
         super(WeighSpecified, self).__init__()
         self.weights = weights
@@ -32,10 +32,6 @@ class WeighSpecified(bt.Algo):
         # added copy to make sure these are not overwritten
         target.temp["weights"] = self.weights.copy()
         return True
-
-
-
-
 
 st.sidebar.write("Options")
 option = st.sidebar.selectbox("Select and option", ('Chart', 'Optomized',  'Chart-Slider'))
@@ -85,13 +81,30 @@ if ( option == 'Chart'):
     stock_list = stock_choice_1 +',' + stock_choice_2 + ',' + stock_choice_3 #list of tickers to get data for 
     stock_dic = {stock_choice_1: float(percent_1)/100, stock_choice_2: float(percent_2)/100, stock_choice3: float(percent_3)/100} #dictonary for strat
     
-    stock_dic_control = {stock_choice_1: float(60)/100, stock_choice_2: float(40)/100, stock_choice_3: float(0)/100}
+    stock_dic_control = {'spy': float(60)/100, 'agg': float(40)/100, stock_choice_3: float(0)/100}
+    stock_dic_spy = {'spy': float(100)/100, 'agg': float(0)/100, stock_choice_3: float(0)/100}
+    stock_dic_agg = {'spy': float(0)/100, 'agg': float(100)/100, stock_choice_3: float(0)/100}
     
     strategy_ = bt.Strategy('Your Strategy Monthly', 
                                 [bt.algos.RunMonthly(), 
                                 bt.algos.SelectAll(), 
                                 bt.algos.WeighSpecified(**stock_dic),
                                 bt.algos.Rebalance()]) #Creating strategy
+    strategy_control = bt.Strategy('60-40', 
+                            [bt.algos.RunMonthly(), 
+                            bt.algos.SelectAll(), 
+                            bt.algos.WeighSpecified(**stock_dic_control),
+                            bt.algos.Rebalance()]) #Creating strategy
+    strategy_spy = bt.Strategy('SPY', 
+                            [bt.algos.RunMonthly(), 
+                            bt.algos.SelectAll(), 
+                            bt.algos.WeighSpecified(**stock_dic_spy),
+                            bt.algos.Rebalance()]) #Creating strategy
+    strategy_agg = bt.Strategy('AGG', 
+                            [bt.algos.RunMonthly(), 
+                            bt.algos.SelectAll(), 
+                            bt.algos.WeighSpecified(**stock_dic_agg),
+                            bt.algos.Rebalance()]) #Creating strategy
     
     if (rebalances == 'Daily'):
         strategy_ = bt.Strategy('Your Strategy Daily', 
@@ -99,33 +112,58 @@ if ( option == 'Chart'):
                                 bt.algos.SelectAll(), 
                                 bt.algos.WeighSpecified(**stock_dic),
                                 bt.algos.Rebalance()]) #Creating strategy
+
+        strategy_control = bt.Strategy('60-40 Daily', 
+                            [bt.algos.RunDaily(), 
+                            bt.algos.SelectAll(), 
+                            bt.algos.WeighSpecified(**stock_dic_control),
+                            bt.algos.Rebalance()]) #Creating strategy
     elif (rebalances == 'Monthly'):
         strategy_ = bt.Strategy('Your Strategy Monthly', 
                                 [bt.algos.RunMonthly(), 
                                 bt.algos.SelectAll(), 
                                 bt.algos.WeighSpecified(**stock_dic),
                                 bt.algos.Rebalance()]) #Creating strategy
+        strategy_control = bt.Strategy('60-40 Monthly', 
+                            [bt.algos.RunMonthly(), 
+                            bt.algos.SelectAll(), 
+                            bt.algos.WeighSpecified(**stock_dic_control),
+                            bt.algos.Rebalance()]) #Creating strategy                        
     elif (rebalances == 'Yearly'):
         strategy_ = bt.Strategy('Your Strategy Yearly', 
                                 [bt.algos.RunYearly(), 
                                 bt.algos.SelectAll(), 
                                 bt.algos.WeighSpecified(**stock_dic),
                                 bt.algos.Rebalance()]) #Creating strategy
+
+        strategy_control = bt.Strategy('60-40 Yearly', 
+                            [bt.algos.RunYearly(), 
+                            bt.algos.SelectAll(), 
+                            bt.algos.WeighSpecified(**stock_dic_control),
+                            bt.algos.Rebalance()]) #Creating strategy
     elif (rebalances == 'None'):
         strategy_ = bt.Strategy('Your Strategy None', 
                                 [bt.algos.RunOnce(), 
                                 bt.algos.SelectAll(), 
                                 bt.algos.WeighSpecified(**stock_dic),
                                 bt.algos.Rebalance()]) #Creating strategy
-    
-    strategy_control = bt.Strategy('60-40 Monthly', 
-                            [bt.algos.RunMonthly(), 
+
+        strategy_control = bt.Strategy('60-40 None', 
+                            [bt.algos.RunOnce(), 
                             bt.algos.SelectAll(), 
                             bt.algos.WeighSpecified(**stock_dic_control),
                             bt.algos.Rebalance()]) #Creating strategy
     
+    
     test_control = bt.Backtest(strategy_control, data)
     results_control = bt.run(test_control)
+    
+    test_spy = bt.Backtest(strategy_spy, data)
+    results_spy = bt.run(test_spy)
+    
+    test_agg = bt.Backtest(strategy_agg, data)
+    results_agg = bt.run(test_agg)
+
     
     test = bt.Backtest(strategy_, data)
     results = bt.run(test)
@@ -151,7 +189,7 @@ if ( option == 'Chart'):
         percent_2 = str(round(data[stock_choice2].iloc[-1]*100))
         percent_3 = str(round(data[stock_choice3].iloc[-1]*100)) 
         
-        st.dataframe(data)
+        #st.dataframe(data)
         
 
     labels = []
@@ -177,16 +215,100 @@ if ( option == 'Chart'):
     df.replace("", nan_value, inplace=True) #lot of empty collumns in dataframe, this makes the empty go to null("NaN")
     df.dropna(how='all', axis=1, inplace=True) #delete null collumns
     df = df.dropna()
-    col2_second.dataframe(df)
+
+    string_con = results_control.to_csv(sep=',') #This creates string of results_control stats 
+    df_control = pd.DataFrame([x.split(',') for x in string_con.split('\n')]) # Takes the string and creates a dataframe 
+    nan_value = float("NaN") 
+    df_control.replace("", nan_value, inplace=True) #lot of empty collumns in dataframe, this makes the empty go to null("NaN")
+    df_control.dropna(how='all', axis=1, inplace=True) #delete null collumns
+    df_control = df_control.dropna()
+
+    #combining the stats
+    stats_combined = pd.concat([df, df_control], axis=1)
+    stats_combined.columns = ['Stats', 'Strategy 1', 'Drop', "Strategy 2"]
+    stats_combined = stats_combined.drop(['Drop'], axis =1 )
+    if (col2_second.button("Display Stats")):
+        if(col2_second.button("Hide Stats")):
+            yo = 1
+        col2_second.dataframe(stats_combined)
+   
+    col1_second.write(results.display_lookback_returns())
+
 
  #Display the Monthly Returns
+    #Monthly Returns for Chosen Strat
     key = results._get_backtest(0)
-    data = [['Year', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'YTD']]
-    for k in results[key].return_table.index:
-        r = results[key].return_table.loc[k].values
-        data.append([k] + [fmtpn(x) for x in r])
-    month_str = tabulate(data, headers='firstrow')
-    col1_second.text(month_str)
+    res_mon = results[key].return_table
+
+    keyc = results_control._get_backtest(0)
+    res_con = results_control[keyc].return_table
+
+    something = pd.concat([res_mon, res_con], axis =1)
+    something.columns = ['Jan', 'Feb',  'Mar',  'Apr',  'May',  'Jun',  'Jul',  'Aug',  'Sep', 'Oct',  'Nov', 'Dec', 'YTD', 'Jan2', 'Feb2',  'Mar2',  'Apr2',  'May2',  'Jun2',  'Jul2',  'Aug2',  'Sep2', 'Oct2',  'Nov2', 'Dec2', 'YTD2']
+    column_names = ['Jan', 'Jan2', 'Feb', 'Feb2', 'Mar', 'Mar2', 'Apr', 'Apr2', 'May', 'May2', 'Jun', 'Jun2', 'Jul', 'Jul2', 'Aug', 'Aug2', 'Sep', 'Sep2', 'Oct', 'Oct2', 'Nov', 'Nov2', 'Dec', 'Dec2', 'YTD', 'YTD2']
+    something = something.reindex(columns = column_names)
+    something.columns = ['Jan', 'Jan ', 'Feb', 'Feb ', 'Mar', 'Mar ', 'Apr', 'Apr ', 'May', 'May ', 'Jun', 'Jun ', 'Jul', 'Jul ', 'Aug', 'Aug ', 'Sep', 'Sep ', 'Oct', 'Oct ', 'Nov', 'Nov ', 'Dec', 'Dec ', 'YTD', 'YTD '] 
+    
+    def highlight_cols(x): 
+        # copy df to new - original data is not changed 
+        df = x.copy() 
+        
+        # select all values to blue color 
+        df.loc[:, :] = 'background-color: blue'
+        
+        # overwrite values grey color 
+        df[['Jan', 'Feb',  'Mar',  'Apr',  'May',  'Jun',  'Jul',  'Aug',  'Sep', 'Oct',  'Nov', 'Dec', 'YTD']] = 'background-color: orange'
+        
+        # return color df 
+        return df  
+
+    st.dataframe(something.style.apply(highlight_cols, axis = None))
+   
+ #Scatter of Risk vs Return
+    #get stats for the spy
+    string_spy = results_spy.to_csv(sep=',') #This creates string of results stats 
+    df_spy = pd.DataFrame([x.split(',') for x in string_spy.split('\n')]) # Takes the string and creates a dataframe 
+    nan_value = float("NaN") 
+    df_spy.replace("", nan_value, inplace=True) #lot of empty collumns in dataframe, this makes the empty go to null("NaN")
+    df_spy.dropna(how='all', axis=1, inplace=True) #delete null collumns
+    df_spy = df_spy.dropna()
+   
+    #get stats for the agg
+    string_agg = results_agg.to_csv(sep=',') #This creates string of results stats 
+    df_agg = pd.DataFrame([x.split(',') for x in string_agg.split('\n')]) # Takes the string and creates a dataframe 
+    nan_value = float("NaN") 
+    df_agg.replace("", nan_value, inplace=True) #lot of empty collumns in dataframe, this makes the empty go to null("NaN")
+    df_agg.dropna(how='all', axis=1, inplace=True) #delete null collumns
+    df_agg = df_agg.dropna()
+    
+    #create x axis list()
+    xaxis_vol = []
+    xaxis_vol.append(float(df.iloc[30][1].replace('%', '')))
+    xaxis_vol.append(float(df_control.iloc[30][1].replace('%', '')))
+    xaxis_vol.append(float(df_spy.iloc[30][1].replace('%', '')))
+    xaxis_vol.append(float(df_agg.iloc[30][1].replace('%', '')))
+    
+    yaxis_return = []
+    yaxis_return.append(float(df.iloc[29][1].replace('%', '')))
+    yaxis_return.append(float(df_control.iloc[29][1].replace('%', '')))
+    yaxis_return.append(float(df_spy.iloc[29][1].replace('%', '')))
+    yaxis_return.append(float(df_agg.iloc[29][1].replace('%', '')))
+
+
+    labels_ = ['Your Strategy', '60-40', 'Spy', 'Agg']
+    color=['tab:orange','tab:blue','tab:red', 'tab:green']
+    fig, ax = plt.subplots()
+    for x, y, c, lb in zip(xaxis_vol, yaxis_return, color, labels_):
+      ax.scatter(x, y, color=c, label = lb)
+    ax.set_title('Risk Vs. Return')
+    ax.set_ylabel("Monthly Mean (ann.) %")
+    ax.set_xlabel("Monthly Vol (ann.) %")
+    ax.legend()
+    col2_second.pyplot(fig)
+    
+
+    
+
     
 elif ( option == 'Chart-Slider'):
     
@@ -285,27 +407,29 @@ elif ( option == 'Chart-Slider'):
     df.replace("", nan_value, inplace=True) #lot of empty collumns in dataframe, this makes the empty go to null("NaN")
     df.dropna(how='all', axis=1, inplace=True) #delete null collumns
     df = df.dropna()
+    st.write(df.iloc[7])
+    st.dataframe(df.iloc[0])
     st.dataframe(df)
 
 elif (option == "Optomized"):
     
-    #Get data 
+ #Get data 
     symbols = "spy,iwm,eem,efa,gld,agg,hyg"
     crypto_symbols = "btc-usd,eth-usd"
     etf_data = bt.get(symbols, start='1993-01-01')
     crypto_data = bt.get(crypto_symbols, start='2016-01-01') 
 
-    #Merge into dataframe
+ #Merge into dataframe
     data = crypto_data.join(etf_data, how='outer')
     data = data.dropna()
 
-    #daily optimal
+ #daily optimal
     returns = data.to_log_returns().dropna()
     daily_opt = returns.calc_mean_var_weights().as_format(".2%")
     st.header("Optimal on Daily Data")
     st.dataframe(daily_opt)
 
-    #Quarterly Optimal 
+ #Quarterly Optimal 
     quarterly_rets= data.asfreq("Q",method='ffill').to_log_returns().dropna()
     quart_opt = quarterly_rets.calc_mean_var_weights().as_format(".2%")
     st.header("Optimal on Quarterly Data")
