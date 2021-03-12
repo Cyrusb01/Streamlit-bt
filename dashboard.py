@@ -310,10 +310,21 @@ if ( option == 'Chart'):
     
 elif ( option == 'Chart-Slider'):
     
+ #Beta collums
     col1_s, col2_s = st.sidebar.beta_columns(2)
-    col1, col2 = st.beta_columns(2)
+    col1, col2 = st.beta_columns((2, 1))
+   
+    col1_header = col1.beta_container()
+    col2_header = col2.beta_container()
     row1_c1 = col1.beta_container()
     row2_c1= col1.beta_container()
+    
+    col1_graph  = col1.beta_container()
+    col2_graph  = col2.beta_container()
+    col1_second = col1.beta_container()
+    col2_second = col2.beta_container()
+
+    
     
     
     #Sidebar Inputs In case want to 
@@ -354,6 +365,8 @@ elif ( option == 'Chart-Slider'):
     stock_list = stock_choice_1 +',' + stock_choice_2 + ',' + stock_choice_3 #list of tickers to get data for 
     stock_dic = {stock_choice_1: float(percent_1)/100, stock_choice_2: float(percent_2)/100, stock_choice_3: float(percent_3)/100} #dictonary for strat
     stock_dic_control = {stock_choice_1: float(60)/100, stock_choice_2: float(40)/100, stock_choice_3: float(0)/100}
+    stock_dic_spy = {'spy': float(100)/100, 'agg': float(0)/100, stock_choice_3: float(0)/100}
+    stock_dic_agg = {'spy': float(0)/100, 'agg': float(100)/100, stock_choice_3: float(0)/100}
     
     strategy_ = bt.Strategy('Strategy 1', 
                             [bt.algos.RunMonthly(), 
@@ -366,9 +379,25 @@ elif ( option == 'Chart-Slider'):
                             bt.algos.SelectAll(), 
                             bt.algos.WeighSpecified(**stock_dic_control),
                             bt.algos.Rebalance()]) #Creating strategy
+    strategy_spy = bt.Strategy('SPY', 
+                            [bt.algos.RunMonthly(), 
+                            bt.algos.SelectAll(), 
+                            bt.algos.WeighSpecified(**stock_dic_spy),
+                            bt.algos.Rebalance()]) #Creating strategy
+    strategy_agg = bt.Strategy('AGG', 
+                            [bt.algos.RunMonthly(), 
+                            bt.algos.SelectAll(), 
+                            bt.algos.WeighSpecified(**stock_dic_agg),
+                            bt.algos.Rebalance()]) #Creating strategy
     
     test_control = bt.Backtest(strategy_control, data)
     results_control = bt.run(test_control)
+
+    test_spy = bt.Backtest(strategy_spy, data)
+    results_spy = bt.run(test_spy)
+    
+    test_agg = bt.Backtest(strategy_agg, data)
+    results_agg = bt.run(test_agg)
     
     test = bt.Backtest(strategy_, data)
     results = bt.run(test)
@@ -379,7 +408,7 @@ elif ( option == 'Chart-Slider'):
     result_final = pd.concat([ser, ser2], axis=1)
     #st.dataframe(result_final)
     row1_c1.header("Returns Graph")
-    row1_c1.line_chart(result_final)
+    col1_header.line_chart(result_final)
 
  #Pie Chart Data 
     labels = []
@@ -396,7 +425,7 @@ elif ( option == 'Chart-Slider'):
     ax1.pie(percentages,  shadow=True, startangle=90)
     plt.legend( labels, loc="best")
     ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
-    col2.pyplot(fig)
+    col2_header.pyplot(fig)
 
  #Display Results
     string_res = results.to_csv(sep=',') #This creates string of results stats 
@@ -405,9 +434,67 @@ elif ( option == 'Chart-Slider'):
     df.replace("", nan_value, inplace=True) #lot of empty collumns in dataframe, this makes the empty go to null("NaN")
     df.dropna(how='all', axis=1, inplace=True) #delete null collumns
     df = df.dropna()
-    st.write(df.iloc[7])
-    st.dataframe(df.iloc[0])
-    st.dataframe(df)
+
+    string_con = results_control.to_csv(sep=',') #This creates string of results_control stats 
+    df_control = pd.DataFrame([x.split(',') for x in string_con.split('\n')]) # Takes the string and creates a dataframe 
+    nan_value = float("NaN") 
+    df_control.replace("", nan_value, inplace=True) #lot of empty collumns in dataframe, this makes the empty go to null("NaN")
+    df_control.dropna(how='all', axis=1, inplace=True) #delete null collumns
+    df_control = df_control.dropna()
+
+    #combining the stats
+    stats_combined = pd.concat([df, df_control], axis=1)
+    stats_combined.columns = ['Stats', 'Strategy 1', 'Drop', "Strategy 2"]
+    stats_combined = stats_combined.drop(['Drop'], axis =1 )
+    if (col2_second.button("Display Stats")):
+        if(col2_second.button("Hide Stats")):
+            yo = 1
+        col2_second.dataframe(stats_combined)
+   
+    col1_second.write(results.display_lookback_returns())
+
+
+#Scatter of Risk vs Return
+    #get stats for the spy
+    string_spy = results_spy.to_csv(sep=',') #This creates string of results stats 
+    df_spy = pd.DataFrame([x.split(',') for x in string_spy.split('\n')]) # Takes the string and creates a dataframe 
+    nan_value = float("NaN") 
+    df_spy.replace("", nan_value, inplace=True) #lot of empty collumns in dataframe, this makes the empty go to null("NaN")
+    df_spy.dropna(how='all', axis=1, inplace=True) #delete null collumns
+    df_spy = df_spy.dropna()
+   
+    #get stats for the agg
+    string_agg = results_agg.to_csv(sep=',') #This creates string of results stats 
+    df_agg = pd.DataFrame([x.split(',') for x in string_agg.split('\n')]) # Takes the string and creates a dataframe 
+    nan_value = float("NaN") 
+    df_agg.replace("", nan_value, inplace=True) #lot of empty collumns in dataframe, this makes the empty go to null("NaN")
+    df_agg.dropna(how='all', axis=1, inplace=True) #delete null collumns
+    df_agg = df_agg.dropna()
+    
+    #create x axis list()
+    xaxis_vol = []
+    xaxis_vol.append(float(df.iloc[30][1].replace('%', '')))
+    xaxis_vol.append(float(df_control.iloc[30][1].replace('%', '')))
+    xaxis_vol.append(float(df_spy.iloc[30][1].replace('%', '')))
+    xaxis_vol.append(float(df_agg.iloc[30][1].replace('%', '')))
+    
+    yaxis_return = []
+    yaxis_return.append(float(df.iloc[29][1].replace('%', '')))
+    yaxis_return.append(float(df_control.iloc[29][1].replace('%', '')))
+    yaxis_return.append(float(df_spy.iloc[29][1].replace('%', '')))
+    yaxis_return.append(float(df_agg.iloc[29][1].replace('%', '')))
+
+
+    labels_ = ['Your Strategy', '60-40', 'Spy', 'Agg']
+    color=['tab:orange','tab:blue','tab:red', 'tab:green']
+    fig, ax = plt.subplots()
+    for x, y, c, lb in zip(xaxis_vol, yaxis_return, color, labels_):
+      ax.scatter(x, y, color=c, label = lb)
+    ax.set_title('Risk Vs. Return')
+    ax.set_ylabel("Monthly Mean (ann.) %")
+    ax.set_xlabel("Monthly Vol (ann.) %")
+    ax.legend()
+    col2_second.pyplot(fig)
 
 elif (option == "Optomized"):
     
