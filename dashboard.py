@@ -1,7 +1,6 @@
 from pandas._config.config import reset_option
 import streamlit as st 
 import pandas as pd
-import numpy as np
 import plotly
 import matplotlib.pyplot as plt
 import bt
