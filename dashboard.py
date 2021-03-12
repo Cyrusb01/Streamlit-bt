@@ -420,7 +420,7 @@ elif ( option == 'Chart-Slider'):
     percentages.append(percent_2)
     percentages.append(percent_3)
 
- #Ploting the pie chart 
+  #Ploting the pie chart 
     fig, ax1 = plt.subplots()
     ax1.pie(percentages,  shadow=True, startangle=90)
     plt.legend( labels, loc="best")
@@ -478,6 +478,7 @@ elif ( option == 'Chart-Slider'):
     xaxis_vol.append(float(df_spy.iloc[30][1].replace('%', '')))
     xaxis_vol.append(float(df_agg.iloc[30][1].replace('%', '')))
     
+    #create y axis list 
     yaxis_return = []
     yaxis_return.append(float(df.iloc[29][1].replace('%', '')))
     yaxis_return.append(float(df_control.iloc[29][1].replace('%', '')))
