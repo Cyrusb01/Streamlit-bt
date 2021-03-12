@@ -5,7 +5,6 @@ import numpy as np
 import plotly
 import matplotlib.pyplot as plt
 import bt
-from utils import fmtp, fmtpn
 from tabulate import tabulate
 
 
