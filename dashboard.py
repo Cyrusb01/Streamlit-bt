@@ -43,17 +43,17 @@ if ( option == 'Chart'):
    col2_second = col2.beta_container()
     
  #Sidebar Inputs
-   stock_choice_1 = col1_s.text_input( "Enter Ticker 1", value = 'SPY', max_chars= 8) #get ticker
+   stock_choice_1 = col1_s.selectbox( "Ticker 1", ('spy', 'efa', 'iwm', 'vwo', 'ibb', 'agg', 'hyg', 'gld', 'slv', 'tsla', 'aapl', 'msft', 'qqq', 'btc-usd', 'eth-usd')) #get ticker
    percent_1 = col2_s.text_input( "% Allocation", value = 55, max_chars= 3, ) # get percent
    stock_choice_1 = stock_choice_1.lower() #bt likes lower case 
    data_1 = bt.get(stock_choice_1, start = start_date) # get the data 
 
-   stock_choice_2 = col1_s.text_input( "Enter Ticker", value = 'AGG', max_chars= 8)
+   stock_choice_2 = col1_s.selectbox( "Ticker 2", ('agg', 'spy', 'efa', 'iwm', 'vwo', 'ibb', 'hyg', 'gld', 'slv', 'tsla', 'aapl', 'msft', 'qqq', 'btc-usd', 'eth-usd'))
    percent_2 = col2_s.text_input( "% Allocation", value = 40, max_chars= 3)
    stock_choice_2 = stock_choice_2.lower()
    data_2 = bt.get(stock_choice_2, start = start_date)
 
-   stock_choice_3 = col1_s.text_input( "Enter Ticker", value = 'BTC-USD', max_chars= 8)
+   stock_choice_3 = col1_s.selectbox( "Ticker 3", ('btc-usd', 'spy', 'efa', 'iwm', 'vwo', 'ibb', 'agg', 'hyg', 'gld', 'slv', 'tsla', 'aapl', 'msft', 'qqq', 'eth-usd'))
    percent_3 = col2_s.text_input( "% Allocation", value = 5, max_chars= 3)
    stock_choice_3 = stock_choice_3.lower()
    data_3 = bt.get(stock_choice_3, start = start_date)
