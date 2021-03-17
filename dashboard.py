@@ -379,7 +379,7 @@ elif (option == 'Portfolio Optimizer'):
  #Beta Columns
    col1_s, col2_s = st.sidebar.beta_columns(2)
    col1, col2, col3 = st.beta_columns((1, 2, 2))
-   
+
  #Get data 
    symbols = "spy,iwm,eem,efa,gld,agg,hyg"
    crypto_symbols = "btc-usd,eth-usd"
@@ -397,6 +397,31 @@ elif (option == 'Portfolio Optimizer'):
    col1.header("Daily Data")
    fig.update_layout(width = 200, height = 300)
    col1.plotly_chart(fig, width = 200, height = 300)
+
+   stock_dic = daily_opt.to_dict()
+
+   for key in stock_dic: #makes percents numbers 
+     stock_dic[key] = float(stock_dic[key].replace('%', ''))
+     if (stock_dic[key] == 0):
+       del stock_dic[key]
+   
+   st.write(stock_dic)
+   stock_list = list(stock_dic.keys()) #convert the dictionary into lists for plotting
+   percent_list = list(stock_dic.values())
+
+   
+
+   st.write(stock_dic)
+   fig = plot_pie(stock_list, percent_list)
+   col2.pyplot(fig)
+
+   strategy_ = bt.Strategy('Your Strategy Monthly', 
+                              [bt.algos.RunMonthly(), 
+                              bt.algos.SelectAll(), 
+                              bt.algos.WeighSpecified(**stock_dic),
+                              bt.algos.Rebalance()]) #Creating strategy
+
+   
 
  #Quarterly Optimal 
    quarterly_rets= data.asfreq("Q",method='ffill').to_log_returns().dropna()

@@ -194,6 +194,8 @@ def balance_table(results, results_con):
     series_con = results_con._get_series(None).rebase()
     final_res = round(series_res.iloc[-1])
     final_con = round(series_con.iloc[-1])
+    final_res = '$' + str(int(final_res)) #this line gets the $, but the initial final_res is a dataframe object type so this line is neccesary for the $
+    final_con = '$' + str(int(final_con))
     fig = go.Figure(data=[go.Table(
                                 header=dict(values= labels,
                                             line_color= 'black',
@@ -328,7 +330,7 @@ def monthly_table(results_list):
                                         line_color = '#dbdbdb',
                                         height = 30,
                                         font = dict(color = [['black', 'black', 'white', 'black','black', 'white', 'black', 'black', 'white', 'black', 'black', 'white', 'black', 'black']*14]),
-                                        fill_color = [['#00EEAD', '#00EEAD', date_color, '#00EEAD','#00EEAD', date_color, '#00EEAD', '#00EEAD', date_color, '#00EEAD', '#00EEAD', date_color, '#00EEAD', '#00EEAD']*14] )) ])
+                                        fill_color = [['#66F3EC', '#67F9AF', date_color, '#66F3EC','#67F9AF', date_color, '#66F3EC', '#67F9AF', date_color, '#66F3EC', '#67F9AF', date_color, '#66F3EC', '#67F9AF']*14] )) ])
     fig.update_layout(margin = dict(l=0, r=0, t=0, b=0))
 
 
