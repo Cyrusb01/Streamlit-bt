@@ -7,6 +7,40 @@ import bt
 from tabulate import tabulate
 import plotly.graph_objects as go
 
+def line_chart(results_list):
+    ser = results_list[0]._get_series(None).rebase() #gets all the daily balances as a series 
+    ser2 = results_list[1]._get_series(None).rebase()
+   
+    result_final = pd.concat([ser, ser2], axis=1) #makes dataframe for both series
+    result_final.columns = ["Your Strategy Monthly", "60-40 Monthly"] 
+    #df = px.data.ser
+    fig = px.line(result_final, labels=dict(index="", value="", variable=""),
+                    title="Portfolio Performance",
+                    color_discrete_map={ # replaces default color mapping by value
+                        "Your Strategy Monthly": '#66F3EC', "60-40 Monthly": '#67F9AF'
+                    },
+                    template="simple_white"
+                    )
+    fig.update_yaxes( # the y-axis is in dollars
+        tickprefix="$", showgrid=True
+    )
+    fig.update_layout(legend=dict(
+        orientation="h",
+        yanchor="bottom",
+        y= -.25,
+        xanchor="right",
+        x=.82
+    ),
+    title={
+            'text': "Portfolio Performance",
+            'y':.99,
+            'x':0.6,
+            'xanchor': 'center',
+            'yanchor': 'top'},)
+    #fig.update_layout(height = 500)
+    fig.update_layout(margin = dict(l=0, r=0, t=20, b=10))
+    return fig
+
 def plot_pie(stock_list, percent_list):
     labels = []
     percents = []
@@ -239,7 +273,7 @@ def monthly_table(results_list):
         temp = []
         temp += ["Your Strategy"]
         for j in range(len(res_mon.columns)):
-            temp += [str(round(df_r.iloc[i][j], 2)) + '%']
+            temp += [str(round(df_r.iloc[i][j]*100, 2)) + '%']
         res_rows.append(temp)
     
     con_rows = [] #this creates the list of the "60-40 Portfolio " then all the numbers
@@ -247,7 +281,7 @@ def monthly_table(results_list):
         temp = []
         temp += ["60-40 Portfolio"]
         for j in range(len(res_con.columns)):
-            temp += [str((round(df_c.iloc[i][j], 2))) + '%'] #this takes the value in, round to 2 decimal places, and adds the percent sign
+            temp += [str((round(df_c.iloc[i][j] *100, 2))) + '%'] #this takes the value in, round to 2 decimal places, and adds the percent sign
         con_rows.append(temp)
 
     length = len(year_rows)
@@ -300,7 +334,27 @@ def monthly_table(results_list):
 
     return fig
 
+def optomize_table(df):
+    df = pd.DataFrame(df)
+    #combining 
+    labels = ['<b>Tickers<b>', '<b>Allocation<b>']
 
+    df.columns = ["Allocation"]
+    df = df.dropna()
+    
+    fig = go.Figure(data=[go.Table(
+                            header=dict(values= labels,
+                                        line_color= 'black',
+                                        fill_color= '#a2a4a8',
+                                        align=['center','center'],
+                                        font=dict(color='white', size=10)),
+                            cells=dict(values=[df.index, df.Allocation],
+                                        line_color = 'white',
+                                        height = 30,
+                                        font = dict(color = 'black'),
+                                        fill_color = '#dbdbdb' )) ])
+    fig.update_layout(margin = dict(l=0, r=0, t=0, b=0))
+    return fig
 
 
 

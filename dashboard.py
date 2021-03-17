@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import bt
 import plotly.express as px
 from tabulate import tabulate 
-from functions import alloc_table, balance_table, monthly_returns_table, plot_pie, display_stats_combined, results_to_df, highlight_cols, scatter_plot, short_stats_table, sum_table, monthly_table
+from functions import alloc_table, balance_table, line_chart, monthly_returns_table, optomize_table, plot_pie, display_stats_combined, results_to_df, highlight_cols, scatter_plot, short_stats_table, sum_table, monthly_table
 
 
 
@@ -40,7 +40,7 @@ class WeighSpecified(bt.Algo):
       return True
 
 st.sidebar.write("Options")
-option = st.sidebar.selectbox("Select and option", ('Chart-work', 'Chart', 'Optomized',  'Chart-Slider'))
+option = st.sidebar.selectbox("Select and option", ('Flexible Dashboard', 'BTC Portfolio Dashboard', 'Portfolio Optimizer'))
 start_date = '2017-01-01'
 
 
@@ -232,27 +232,21 @@ if ( option == 'Chart'):
    fig = alloc_table(stock_list_plt, percent_list, rebalance_list)
    col2.plotly_chart(fig)
 
-elif ( option == 'Chart-Slider'):
+elif ( option == 'BTC Portfolio Dashboard'):
     
  #Beta Columns
-
    col1_s, col2_s = st.sidebar.beta_columns(2)
-   col1, col2 = st.beta_columns((2, 1))
-   
-   col1_header = col1.beta_container()
-   col2_header = col2.beta_container()
+   col1, col2 = st.beta_columns((1, 2))
+   col1_top = col1.beta_container()
+   col1_middle = col1.beta_container()
+   col1_bot = col1.beta_container()
+   col2t =col2.beta_container()
+   col2b =col2.beta_container()
 
-   row1_c1 = col1.beta_container()
-   row2_c1= col1.beta_container()
-
-   col1_graph  = col1.beta_container()
-   col2_graph  = col2.beta_container()
-
-   col1_second = col1.beta_container()
-   col2_second = col2.beta_container()
+   table = st.beta_container()
 
  #Creating Strategy and Backtest 
-   slider_input = row2_c1.slider('Percent of BTC-USD in Portfolio', min_value= 0, max_value= 10, value= 5 )
+   slider_input = col1_middle.slider('Percent of BTC-USD in Portfolio', min_value= 0, max_value= 10, value= 5 )
     
    #hardcoding in the values since we dont have user input
    stock_choice_1 = 'spy'
@@ -270,7 +264,7 @@ elif ( option == 'Chart-Slider'):
    data_2 = bt.get(stock_choice_2, start = start_date)
    data_3 = bt.get(stock_choice_3, start = start_date)
    
-   #Allows for crypto and stock to be in a dataframe
+  #Allows for crypto and stock to be in a dataframe
    data = data_1.join(data_2, how='outer')
    data = data.join(data_3, how= 'outer')
    data = data.dropna()
@@ -321,44 +315,71 @@ elif ( option == 'Chart-Slider'):
    test = bt.Backtest(strategy_, data)
    results = bt.run(test)
 
- #Line Chart
+   results_list = [results, results_control, results_spy, results_agg]
+   results_df = results_to_df(results_list) #list of the results but now in dataframe 
 
-   ser = results._get_series(None).rebase()
-   ser2 = results_control._get_series(None).rebase()
-   result_final = pd.concat([ser, ser2], axis=1)
-   col1_header.header("Returns Graph")
-   col1_header.line_chart(result_final)
+ #Line Chart
+   fig = line_chart(results_list)
+   col1.header("Returns Graph")
+   col2.plotly_chart(fig)
 
  #Pie Chart 
    
    fig = plot_pie(stock_list_plt, percent_list)
-   col2_header.header("Pie Chart")
-   col2_header.pyplot(fig)
+   col1_top.header("Pie Chart")
+   col1_top.pyplot(fig)
 
  #Display Results
-   results_list = [results, results_control, results_spy, results_agg] #list of results objects
-   results_df = results_to_df(results_list) #list of the results but now in dataframe 
+  #  results_list = [results, results_control, results_spy, results_agg] #list of results objects
+  #  results_df = results_to_df(results_list) #list of the results but now in dataframe 
 
-   stats = display_stats_combined(results_list)
+  #  stats = display_stats_combined(results_list)
 
-   if (col2_second.button("Display Stats")):
-      if(col2_second.button("Hide Stats")):
-         yo = 1
-      col2_second.dataframe(stats)
+  #  if (col2_second.button("Display Stats")):
+  #     if(col2_second.button("Hide Stats")):
+  #        yo = 1
+  #     col2_second.dataframe(stats)
 
-   col1_second.write(results.display_lookback_returns())
+  #  col1_second.write(results.display_lookback_returns())
 
  #Display the Monthly Returns
 
    mon_table = monthly_returns_table(results_list)
-   st.dataframe(mon_table.style.apply(highlight_cols, axis = None))
+   #st.dataframe(mon_table.style.apply(highlight_cols, axis = None))
 
  #Scatter of Risk vs Return
    fig = scatter_plot(results_df) #scatter function in functions
-   col2_second.pyplot(fig)
+   fig.update_layout(width = 750, height = 500)
+   col2t.plotly_chart(fig, width = 750, height =500)
 
-elif (option == "Optomized"):
+ #Allocation Table
+   rebalance_list = [3, 4, 5]
+   fig = alloc_table(stock_list_plt, percent_list, rebalance_list)
+   fig.update_layout(width = 400, height = 130)
+   #col1.plotly_chart(fig, width = 400, height = 130)
 
+ #Balance Table
+   fig = balance_table(results, results_control)
+   fig.update_layout(width = 400, height = 75)
+   col1.plotly_chart(fig, width = 400, height = 75)
+
+ #Short Stats Table
+   fig = short_stats_table(results_list)
+   fig.update_layout(width = 380, height = 300)
+   col1.header("Return Statistics")
+   col1.plotly_chart(fig, width = 380, height = 300)
+
+ #Monthly Table 
+   my_expander = st.beta_expander("Show Monthly Returns")
+   fig = monthly_table(results_list)
+   fig.update_layout(width = 1100)
+   my_expander.plotly_chart(fig, width = 1100)
+
+elif (option == 'Portfolio Optimizer'):
+ #Beta Columns
+   col1_s, col2_s = st.sidebar.beta_columns(2)
+   col1, col2, col3 = st.beta_columns((1, 2, 2))
+   
  #Get data 
    symbols = "spy,iwm,eem,efa,gld,agg,hyg"
    crypto_symbols = "btc-usd,eth-usd"
@@ -372,18 +393,20 @@ elif (option == "Optomized"):
  #daily optimal
    returns = data.to_log_returns().dropna()
    daily_opt = returns.calc_mean_var_weights().as_format(".2%")
-   st.header("Optimal on Daily Data")
-   st.dataframe(daily_opt)
+   fig = optomize_table(daily_opt)
+   col1.header("Daily Data")
+   fig.update_layout(width = 200, height = 300)
+   col1.plotly_chart(fig, width = 200, height = 300)
 
  #Quarterly Optimal 
    quarterly_rets= data.asfreq("Q",method='ffill').to_log_returns().dropna()
    quart_opt = quarterly_rets.calc_mean_var_weights().as_format(".2%")
-   st.header("Optimal on Quarterly Data")
-   st.dataframe(quart_opt)
+   fig = optomize_table(quart_opt)
+   col1.header("Quarterly Data")
+   fig.update_layout(width = 200, height = 300)
+   col1.plotly_chart(fig, width = 200, height = 300)
 
-
-
-if ( option == 'Chart-work'):
+if ( option == 'Flexible Dashboard'):
  #Beta Columns and Containers 
    col1_s, col2_s = st.sidebar.beta_columns(2)
    col1, col2 = st.beta_columns((1, 2))
@@ -525,38 +548,11 @@ if ( option == 'Chart-work'):
    
    test = bt.Backtest(strategy_, data)
    results = bt.run(test)
+   
+   results_list = [results, results_control, results_spy, results_agg] #list of results objects
 
  #Line Chart
-   ser = results._get_series(None).rebase() #gets all the daily balances as a series 
-   ser2 = results_control._get_series(None).rebase()
-   
-   result_final = pd.concat([ser, ser2], axis=1) #makes dataframe for both series 
-   #df = px.data.ser
-   fig = px.line(result_final, labels=dict(index="", value="", variable=""),
-                  title="Portfolio Performance",
-                  color_discrete_map={ # replaces default color mapping by value
-                      "Your Strategy Monthly": '#66F3EC', "60-40 Monthly": '#67F9AF'
-                  },
-                  template="simple_white"
-                  )
-   fig.update_yaxes( # the y-axis is in dollars
-    tickprefix="$", showgrid=True
-   )
-   fig.update_layout(legend=dict(
-    orientation="h",
-    yanchor="bottom",
-    y= -.25,
-    xanchor="right",
-    x=.82
-   ),
-   title={
-        'text': "Portfolio Performance",
-        'y':.99,
-        'x':0.6,
-        'xanchor': 'center',
-        'yanchor': 'top'},)
-   #fig.update_layout(height = 500)
-   fig.update_layout(margin = dict(l=0, r=0, t=20, b=10))
+   fig = line_chart(results_list)
    fig.update_layout(width = 700)
    col2b.plotly_chart(fig)
 
@@ -585,7 +581,7 @@ if ( option == 'Chart-work'):
 
  #Display Results
     
-   results_list = [results, results_control, results_spy, results_agg] #list of results objects
+   
    results_df = results_to_df(results_list) #list of the results but now in dataframe 
 
    stats = display_stats_combined(results_list)
