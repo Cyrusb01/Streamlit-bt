@@ -12,14 +12,16 @@ from functions import alloc_table, balance_table, line_chart, monthly_returns_ta
 
 st.set_page_config(layout="wide") #makes page wider 
 
-def get_data():
+@st.cache
+def get_data(dontchange):
   s_data = bt.get('spy,efa,iwm,vwo,ibb,agg,hyg,gld,slv,tsla,aapl,msft,qqq', start = '2017-01-01')
   cry_data = bt.get('btc-usd,eth-usd', start = '2017-01-01')
-  data = cry_data.join(s_data, how='outer')
-  data = data.dropna()
-  return data
+  data_cache = cry_data.join(s_data, how='outer')
+  data_cache = data_cache.dropna()
+  return data_cache
 
-data = get_data()
+dontchange = 0
+data = get_data(dontchange)
 # st.markdown(
 #   """
 #   <style>
