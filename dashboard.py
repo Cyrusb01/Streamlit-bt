@@ -12,14 +12,7 @@ from functions import alloc_table, balance_table, line_chart, monthly_returns_ta
 
 st.set_page_config(layout="wide") #makes page wider 
 
-@st.cache
-def print_x(testing_x):
-  st.write("in printx")
-  dl = 56
-  return dl
-st.write("otuside of printx")
-testing_x = 45
-frog = print_x(testing_x)
+
 
 
 def get_data(dontchange):
@@ -255,7 +248,14 @@ if ( option == 'Chart'):
    col2.plotly_chart(fig)
 
 elif ( option == 'BTC Portfolio Dashboard'):
-    
+   @st.cache
+   def print_x(testing_x):
+      st.write("in printx")
+      dl = 56
+      return dl
+   st.write("otuside of printx")
+   testing_x = 45
+   frog = print_x(testing_x)
  #Beta Columns
    col1_s, col2_s = st.sidebar.beta_columns(2)
    col1, col2 = st.beta_columns((1, 2))
