@@ -13,15 +13,24 @@ from functions import alloc_table, balance_table, line_chart, monthly_returns_ta
 st.set_page_config(layout="wide") #makes page wider 
 
 @st.cache
+def print_x(testing_x):
+  st.write("in printx")
+  dl = 56
+  return dl
+st.write("otuside of printx")
+testing_x = 45
+frog = print_x(testing_x)
+
+
 def get_data(dontchange):
-  st.write("caches inside")
+  #st.write("caches inside")
   s_data = bt.get('spy,efa,iwm,vwo,ibb,agg,hyg,gld,slv,tsla,aapl,msft,qqq', start = '2017-01-01')
   cry_data = bt.get('btc-usd,eth-usd', start = '2017-01-01')
   data_cache = cry_data.join(s_data, how='outer')
   data_cache = data_cache.dropna()
   return data_cache
 
-st.write('caches')
+#st.write('caches')
 dontchange = 0
 data = get_data(dontchange)
 # st.markdown(
