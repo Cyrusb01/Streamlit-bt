@@ -11,23 +11,20 @@ strategy_color = '#A90BFE'
 P6040_color = '#FF7052'
 spy_color = '#66F3EC'
 agg_color = '#67F9AF'
+colors = [strategy_color, P6040_color, spy_color, agg_color]
 
 def line_chart(results_list):
-    ser_r = results_list[0]._get_series(None).rebase() #gets all the daily balances as a series 
-    ser_c = results_list[1]._get_series(None).rebase()
-    ser_s = results_list[2]._get_series(None).rebase()
-    ser_a = results_list[3]._get_series(None).rebase()
-   
-    result_final = pd.concat([ser_r, ser_c, ser_s, ser_a], axis=1) #makes dataframe for both series
+    color_dict = {}
+    result_final = pd.DataFrame()
+    for i in range(len(results_list)):
 
-    result_final.columns = [ser_r.columns[0], ser_c.columns[0], ser_s.columns[0], ser_a.columns[0]] #labels
-    
+        temp = results_list[i]._get_series(None).rebase()
+        result_final = pd.concat([result_final, temp], axis = 1) #result dataframe
+        color_dict[result_final.columns[i]] = colors[i] #colors
     
     fig = px.line(result_final, labels=dict(index="", value="", variable=""),
                     title="Portfolio Performance",
-                    color_discrete_map={ # replaces default color mapping by value
-                        result_final.columns[0]: '#A90BFE', result_final.columns[1]: '#FF7052', result_final.columns[2]:'#66F3EC', result_final.columns[3]:'#67F9AF'
-                    },
+                    color_discrete_map=color_dict,
                     template="simple_white"
                     )
     fig.update_yaxes( # the y-axis is in dollars
@@ -51,10 +48,10 @@ def line_chart(results_list):
     fig.update_layout(margin = dict(l=0, r=0, t=20, b=10))
     return fig
 
-def plot_pie(stock_list, percent_list):
+def plot_pie(stock_list, percent_list, pie_colors = ['#66F3EC', '#67F9AF', '#F9C515']):
     labels = []
     percents = []
-    pie_colors = ['#66F3EC', '#67F9AF', '#F9C515']
+    #pie_colors = ['#66F3EC', '#67F9AF', '#F9C515']
 
     for x, y in zip(stock_list, percent_list): #labels show the percent in the legend 
         labels.append(x.upper())

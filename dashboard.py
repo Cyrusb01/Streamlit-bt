@@ -12,14 +12,16 @@ from functions import alloc_table, balance_table, line_chart, monthly_returns_ta
 
 st.set_page_config(layout="wide") #makes page wider 
 
-
+@st.cache
 def get_data(dontchange):
+  st.write("caches inside")
   s_data = bt.get('spy,efa,iwm,vwo,ibb,agg,hyg,gld,slv,tsla,aapl,msft,qqq', start = '2017-01-01')
   cry_data = bt.get('btc-usd,eth-usd', start = '2017-01-01')
   data_cache = cry_data.join(s_data, how='outer')
   data_cache = data_cache.dropna()
   return data_cache
 
+st.write('caches')
 dontchange = 0
 data = get_data(dontchange)
 # st.markdown(
@@ -384,11 +386,11 @@ elif ( option == 'BTC Portfolio Dashboard'):
    col1.plotly_chart(fig, width = 380, height = 300)
 
  #Monthly Table 
-   
    #my_expander = st.beta_expander("Show Monthly Returns")
    fig = monthly_table(results_list)
    fig.update_layout(width = 1100, height = 2000)
    st.plotly_chart(fig, width = 1100, height = 2000)
+
  #Stats Table
    stats_expander = col1.beta_expander("Click to Show Strategy Statistics")
    fig = stats_table(results_list)
@@ -665,48 +667,88 @@ if ( option == 'Flexible Dashboard'):
 elif (option == 'Portfolio Optimizer'):
  #Beta Columns
    col1_s, col2_s = st.sidebar.beta_columns(2)
-   col1, col2, col3 = st.beta_columns((1, 2, 2))
+   col1, col2 = st.beta_columns((1, 2))
 
  #Get data 
-   symbols = "spy,iwm,eem,efa,gld,agg,hyg"
-   crypto_symbols = "btc-usd,eth-usd"
-  #  etf_data = bt.get(symbols, start='1993-01-01')
-  #  crypto_data = bt.get(crypto_symbols, start='2016-01-01') 
+   symbols = 'spy,iwm,eem,efa,gld,agg,hyg'
+   crypto_symbols = 'btc-usd,eth-usd'
+   etf_data = bt.get(symbols, start='1993-01-01')
+   crypto_data = bt.get(crypto_symbols, start='2016-01-01') 
 
  #Merge into dataframe
-  #  data = crypto_data.join(etf_data, how='outer')
-  #  data = data.dropna()
+   data = crypto_data.join(etf_data, how='outer')
+   data = data.dropna()
 
  #daily optimal
+  #gets daily optimal data
    returns = data.to_log_returns().dropna()
    daily_opt = returns.calc_mean_var_weights().as_format(".2%")
    fig = optomize_table(daily_opt)
+
+  #table
    col1.header("Daily Data")
    fig.update_layout(width = 200, height = 300)
    col1.plotly_chart(fig, width = 200, height = 300)
-
+   
+  #preparing data for charts
    stock_dic = daily_opt.to_dict()
 
-  #  for key in stock_dic: #makes percents numbers 
-  #    stock_dic[key] = float(stock_dic[key].replace('%', ''))
-  #    if (stock_dic[key] == 0):
-  #      del stock_dic[key]
+   for key in stock_dic: #makes percents numbers 
+     stock_dic[key] = float(stock_dic[key].replace('%', ''))
+     stock_dic[key] = stock_dic[key]/100
    
-  #  st.write(stock_dic)
-  #  stock_list = list(stock_dic.keys()) #convert the dictionary into lists for plotting
-  #  percent_list = list(stock_dic.values())
+   st.write(stock_dic)
+   stock_list = list(stock_dic.keys()) #convert the dictionary into lists for plotting
+   percent_list = list(stock_dic.values())
+
+   temp = []
+   temp_stock = []
+   for i in range(len(percent_list)): #Takes out values of 0 
+     if (percent_list[i] != 0):
+       temp.append(percent_list[i])
+       temp_stock.append(stock_list[i])
+
+   stock_list = temp_stock
+   percent_list= temp
+
+   strategy_color = '#A90BFE'
+   P6040_color = '#FF7052'
+   spy_color = '#66F3EC'
+   agg_color = '#67F9AF'
 
    
+   strategy_op = bt.Strategy('Your Portolio Optomized', 
+                              [bt.algos.RunMonthly(), 
+                              bt.algos.SelectAll(), 
+                              bt.algos.WeighSpecified(**stock_dic),
+                              bt.algos.Rebalance()]) #Creating strategy
 
-  #  st.write(stock_dic)
-  #  fig = plot_pie(stock_list, percent_list)
-  #  col2.pyplot(fig)
+   strategy_port = bt.Strategy('Your Portolio Equal', 
+                              [bt.algos.RunMonthly(), 
+                              bt.algos.SelectAll(), 
+                              bt.algos.WeighEqually(),
+                              bt.algos.Rebalance()]) #Creating strategy
 
-  #  strategy_ = bt.Strategy('Your Strategy Monthly', 
-  #                             [bt.algos.RunMonthly(), 
-  #                             bt.algos.SelectAll(), 
-  #                             bt.algos.WeighSpecified(**stock_dic),
-  #                             bt.algos.Rebalance()]) #Creating strategy
+   test_op = bt.Backtest(strategy_op, data)
+   results_op = bt.run(test_op)
+
+   test_port = bt.Backtest(strategy_port, data)
+   results_port = bt.run(test_port)
+
+  #pie chart
+   results_list = [results_op, results_port]
+   pie_colors = [strategy_color, P6040_color, spy_color, agg_color, '#7496F3', '#B7FA59', 'brown', '#EE4444', 'gold']
+   fig = plot_pie(stock_list, percent_list, pie_colors)
+   #fig.set_size_inches(18.5, 18.5, forward=True) #how to change dimensions since pie is in matplotlib
+   col1.header("Optomized Portfolio")
+   col1.pyplot(fig)
+
+  #line chart
+   fig = line_chart(results_list)
+   fig.update_layout(width = 500, height = 300)
+   col2.header("Daily Performance")
+   col2.plotly_chart(fig, width = 600, height = 300)
+   
 
    
 
