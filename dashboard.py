@@ -12,6 +12,15 @@ from functions import alloc_table, balance_table, line_chart, monthly_returns_ta
 
 st.set_page_config(layout="wide") #makes page wider 
 
+@st.cache
+def get_data():
+  s_data = bt.get('spy,efa,iwm,vwo,ibb,agg,hyg,gld,slv,tsla,aapl,msft,qqq', start = '2017-01-01')
+  cry_data = bt.get('btc-usd,eth-usd', start = '2017-01-01')
+  data = cry_data.join(s_data, how='outer')
+  data = data.dropna()
+  return data
+
+data = get_data()
 # st.markdown(
 #   """
 #   <style>
@@ -40,7 +49,7 @@ class WeighSpecified(bt.Algo):
       return True
 
 st.sidebar.write("Options")
-option = st.sidebar.selectbox("Select and option", ('Flexible Dashboard', 'BTC Portfolio Dashboard', 'Portfolio Optimizer'))
+option = st.sidebar.selectbox("Select and option", ('Flexible Dashboard', 'BTC Portfolio Dashboard', 'Portfolio Optimizer', 'Chart'))
 start_date = '2017-01-01'
 
 
@@ -260,14 +269,14 @@ elif ( option == 'BTC Portfolio Dashboard'):
    percent_list = [percent_1, percent_2, percent_3]
 
    #get data seperatly because crypto and reg data dont work together 
-   data_1 = bt.get(stock_choice_1, start = start_date)
-   data_2 = bt.get(stock_choice_2, start = start_date)
-   data_3 = bt.get(stock_choice_3, start = start_date)
+  #  data_1 = bt.get(stock_choice_1, start = start_date)
+  #  data_2 = bt.get(stock_choice_2, start = start_date)
+  #  data_3 = bt.get(stock_choice_3, start = start_date)
    
   #Allows for crypto and stock to be in a dataframe
-   data = data_1.join(data_2, how='outer')
-   data = data.join(data_3, how= 'outer')
-   data = data.dropna()
+  #  data = data_1.join(data_2, how='outer')
+  #  data = data.join(data_3, how= 'outer')
+  #  data = data.dropna()
 
    stock_choice_3 = stock_choice_3.replace('-', '') #get data with btc-usd but then bt likes btcusd
 
@@ -360,8 +369,8 @@ elif ( option == 'BTC Portfolio Dashboard'):
 
  #Balance Table
    fig = balance_table(results, results_control)
-   fig.update_layout(width = 400, height = 75)
-   col1.plotly_chart(fig, width = 400, height = 75)
+   fig.update_layout(width = 380, height = 75)
+   col1.plotly_chart(fig, width = 380, height = 75)
 
  #Short Stats Table
    fig = short_stats_table(results_list)
@@ -370,66 +379,11 @@ elif ( option == 'BTC Portfolio Dashboard'):
    col1.plotly_chart(fig, width = 380, height = 300)
 
  #Monthly Table 
-   my_expander = st.beta_expander("Show Monthly Returns")
+   
+   #my_expander = st.beta_expander("Show Monthly Returns")
    fig = monthly_table(results_list)
    fig.update_layout(width = 1100)
-   my_expander.plotly_chart(fig, width = 1100)
-
-elif (option == 'Portfolio Optimizer'):
- #Beta Columns
-   col1_s, col2_s = st.sidebar.beta_columns(2)
-   col1, col2, col3 = st.beta_columns((1, 2, 2))
-
- #Get data 
-   symbols = "spy,iwm,eem,efa,gld,agg,hyg"
-   crypto_symbols = "btc-usd,eth-usd"
-   etf_data = bt.get(symbols, start='1993-01-01')
-   crypto_data = bt.get(crypto_symbols, start='2016-01-01') 
-
- #Merge into dataframe
-   data = crypto_data.join(etf_data, how='outer')
-   data = data.dropna()
-
- #daily optimal
-   returns = data.to_log_returns().dropna()
-   daily_opt = returns.calc_mean_var_weights().as_format(".2%")
-   fig = optomize_table(daily_opt)
-   col1.header("Daily Data")
-   fig.update_layout(width = 200, height = 300)
-   col1.plotly_chart(fig, width = 200, height = 300)
-
-   stock_dic = daily_opt.to_dict()
-
-   for key in stock_dic: #makes percents numbers 
-     stock_dic[key] = float(stock_dic[key].replace('%', ''))
-     if (stock_dic[key] == 0):
-       del stock_dic[key]
-   
-   st.write(stock_dic)
-   stock_list = list(stock_dic.keys()) #convert the dictionary into lists for plotting
-   percent_list = list(stock_dic.values())
-
-   
-
-   st.write(stock_dic)
-   fig = plot_pie(stock_list, percent_list)
-   col2.pyplot(fig)
-
-   strategy_ = bt.Strategy('Your Strategy Monthly', 
-                              [bt.algos.RunMonthly(), 
-                              bt.algos.SelectAll(), 
-                              bt.algos.WeighSpecified(**stock_dic),
-                              bt.algos.Rebalance()]) #Creating strategy
-
-   
-
- #Quarterly Optimal 
-   quarterly_rets= data.asfreq("Q",method='ffill').to_log_returns().dropna()
-   quart_opt = quarterly_rets.calc_mean_var_weights().as_format(".2%")
-   fig = optomize_table(quart_opt)
-   col1.header("Quarterly Data")
-   fig.update_layout(width = 200, height = 300)
-   col1.plotly_chart(fig, width = 200, height = 300)
+   st.plotly_chart(fig, width = 1100)
 
 if ( option == 'Flexible Dashboard'):
  #Beta Columns and Containers 
@@ -453,24 +407,24 @@ if ( option == 'Flexible Dashboard'):
    stock_choice_1 = col1_s.selectbox( "Ticker 1", ('spy', 'efa', 'iwm', 'vwo', 'ibb', 'agg', 'hyg', 'gld', 'slv', 'tsla', 'aapl', 'msft', 'qqq', 'btc-usd', 'eth-usd')) #get ticker
    percent_1 = col2_s.text_input( "% Allocation", value = 55, max_chars= 3, ) # get percent
    stock_choice_1 = stock_choice_1.lower() #bt likes lower case 
-   data_1 = bt.get(stock_choice_1, start = start_date) # get the data 
+   #data_1 = bt.get(stock_choice_1, start = start_date) # get the data 
 
    stock_choice_2 = col1_s.selectbox( "Ticker 2", ('agg', 'spy', 'efa', 'iwm', 'vwo', 'ibb', 'hyg', 'gld', 'slv', 'tsla', 'aapl', 'msft', 'qqq', 'btc-usd', 'eth-usd'))
    percent_2 = col2_s.text_input( "% Allocation", value = 40, max_chars= 3)
    stock_choice_2 = stock_choice_2.lower()
-   data_2 = bt.get(stock_choice_2, start = start_date)
+   #data_2 = bt.get(stock_choice_2, start = start_date)
 
    stock_choice_3 = col1_s.selectbox( "Ticker 3", ('btc-usd', 'spy', 'efa', 'iwm', 'vwo', 'ibb', 'agg', 'hyg', 'gld', 'slv', 'tsla', 'aapl', 'msft', 'qqq', 'eth-usd'))
    percent_3 = col2_s.text_input( "% Allocation", value = 5, max_chars= 3)
    stock_choice_3 = stock_choice_3.lower()
-   data_3 = bt.get(stock_choice_3, start = start_date)
+   #data_3 = bt.get(stock_choice_3, start = start_date)
 
    #allows us to combine the datasets to account for the difference in reg vs. Crypto 
-   data = data_1.join(data_2, how='outer')
-   data = data.join(data_3, how= 'outer')
-   data = data.dropna()
+  #  data = data_1.join(data_2, how='outer')
+  #  data = data.join(data_3, how= 'outer')
+  #  data = data.dropna()
 
-   data_con = bt.get('spy,agg,gme', start = start_date)
+   #data_con = bt.get('spy,agg,gme', start = start_date)
    
    #need the '-' in cryptos to get the data, but bt needs it gone to work
    stock_choice_1 = stock_choice_1.replace('-', '')
@@ -491,12 +445,12 @@ if ( option == 'Flexible Dashboard'):
    stock_dic_spy = {'spy': float(100)/100, 'agg': float(0)/100, stock_choice_3: float(0)/100}
    stock_dic_agg = {'spy': float(0)/100, 'agg': float(100)/100, stock_choice_3: float(0)/100}
    
-   strategy_ = bt.Strategy('Your Strategy Monthly', 
+   strategy_ = bt.Strategy('Your Strategy', 
                               [bt.algos.RunMonthly(), 
                               bt.algos.SelectAll(), 
                               bt.algos.WeighSpecified(**stock_dic),
                               bt.algos.Rebalance()]) #Creating strategy
-   strategy_control = bt.Strategy('60-40', 
+   strategy_control = bt.Strategy('60-40 Portfolio', 
                            [bt.algos.RunMonthly(), 
                            bt.algos.SelectAll(), 
                            bt.algos.WeighSpecified(**stock_dic_control),
@@ -511,9 +465,29 @@ if ( option == 'Flexible Dashboard'):
                            bt.algos.SelectAll(), 
                            bt.algos.WeighSpecified(**stock_dic_agg),
                            bt.algos.Rebalance()]) #Creating strategy
-   
+   strategy_daily = bt.Strategy('Daily', 
+                              [bt.algos.RunDaily(), 
+                              bt.algos.SelectAll(), 
+                              bt.algos.WeighSpecified(**stock_dic),
+                              bt.algos.Rebalance()]) #Creating strategy
+   strategy_monthly = bt.Strategy('Monthly', 
+                              [bt.algos.RunMonthly(), 
+                              bt.algos.SelectAll(), 
+                              bt.algos.WeighSpecified(**stock_dic),
+                              bt.algos.Rebalance()]) #Creating strategy
+   strategy_yearly = bt.Strategy('Yearly', 
+                              [bt.algos.RunYearly(), 
+                              bt.algos.SelectAll(), 
+                              bt.algos.WeighSpecified(**stock_dic),
+                              bt.algos.Rebalance()]) #Creating strategy
+   strategy_none = bt.Strategy('None', 
+                              [bt.algos.RunOnce(), 
+                              bt.algos.SelectAll(), 
+                              bt.algos.WeighSpecified(**stock_dic),
+                              bt.algos.Rebalance()]) #Creating strategy
+  #old rebalances
    if (rebalances == 'Daily'):
-      strategy_ = bt.Strategy('Your Strategy Daily', 
+      strategy_daily = bt.Strategy('Your Strategy Daily', 
                               [bt.algos.RunDaily(), 
                               bt.algos.SelectAll(), 
                               bt.algos.WeighSpecified(**stock_dic),
@@ -525,18 +499,18 @@ if ( option == 'Flexible Dashboard'):
                            bt.algos.WeighSpecified(**stock_dic_control),
                            bt.algos.Rebalance()]) #Creating strategy
    elif (rebalances == 'Monthly'):
-      strategy_ = bt.Strategy('Your Strategy Monthly', 
+      strategy_monthly = bt.Strategy('Monthly', 
                               [bt.algos.RunMonthly(), 
                               bt.algos.SelectAll(), 
                               bt.algos.WeighSpecified(**stock_dic),
                               bt.algos.Rebalance()]) #Creating strategy
-      strategy_control = bt.Strategy('60-40 Monthly', 
+      strategy_control = bt.Strategy('60-40 Portfolio', 
                            [bt.algos.RunMonthly(), 
                            bt.algos.SelectAll(), 
                            bt.algos.WeighSpecified(**stock_dic_control),
                            bt.algos.Rebalance()]) #Creating strategy                        
    elif (rebalances == 'Yearly'):
-      strategy_ = bt.Strategy('Your Strategy Yearly', 
+      strategy_yearly = bt.Strategy('Your Strategy Yearly', 
                               [bt.algos.RunYearly(), 
                               bt.algos.SelectAll(), 
                               bt.algos.WeighSpecified(**stock_dic),
@@ -548,7 +522,7 @@ if ( option == 'Flexible Dashboard'):
                            bt.algos.WeighSpecified(**stock_dic_control),
                            bt.algos.Rebalance()]) #Creating strategy
    elif (rebalances == 'None'):
-      strategy_ = bt.Strategy('Your Strategy None', 
+      strategy_none = bt.Strategy('Your Strategy None', 
                               [bt.algos.RunOnce(), 
                               bt.algos.SelectAll(), 
                               bt.algos.WeighSpecified(**stock_dic),
@@ -559,32 +533,49 @@ if ( option == 'Flexible Dashboard'):
                            bt.algos.SelectAll(), 
                            bt.algos.WeighSpecified(**stock_dic_control),
                            bt.algos.Rebalance()]) #Creating strategy
-   
-   
-   test_control = bt.Backtest(strategy_control, data_con)
+
+  #results 
+   test_control = bt.Backtest(strategy_control, data)
    results_control = bt.run(test_control)
    
-   test_spy = bt.Backtest(strategy_spy, data_con)
+   test_spy = bt.Backtest(strategy_spy, data)
    results_spy = bt.run(test_spy)
    
-   test_agg = bt.Backtest(strategy_agg, data_con)
+   test_agg = bt.Backtest(strategy_agg, data)
    results_agg = bt.run(test_agg)
 
-   
    test = bt.Backtest(strategy_, data)
    results = bt.run(test)
+
+   #Rebalance Strategies
+   test_d = bt.Backtest(strategy_daily, data)
+   results_daily = bt.run(test_d)
+
+   test_m = bt.Backtest(strategy_monthly, data)
+   results_monthly = bt.run(test_m)
+
+   test_y = bt.Backtest(strategy_yearly, data)
+   results_yearly = bt.run(test_y)
+
+   test_n = bt.Backtest(strategy_none, data)
+   results_none = bt.run(test_n)
    
    results_list = [results, results_control, results_spy, results_agg] #list of results objects
+   results_list_reb = [results_daily, results_monthly, results_yearly, results_none]
 
  #Line Chart
    fig = line_chart(results_list)
    fig.update_layout(width = 700)
-   col2b.plotly_chart(fig)
 
-  
+   fig2 = line_chart(results_list_reb)
+   fig2.update_layout(width = 700)
    
-   #col1_header.header("Returns Graph")
-   #col1_graph.line_chart(result_final)
+   figure = fig
+   box = col2b.checkbox('Compare Rebalancing Options for Your Strategy')
+   if box:
+     figure = fig2
+   col2b.plotly_chart(figure)
+
 
  #Pie Chart
    if (rebalances == 'None'): #pie chart is wrong since no rebalances
@@ -647,11 +638,63 @@ if ( option == 'Flexible Dashboard'):
    col1.plotly_chart(fig, width = 380, height = 300)
 
  #Monthly Table 
-   my_expander = st.beta_expander("Show Monthly Returns")
+   #my_expander = st.beta_expander("Show Monthly Returns")
    fig = monthly_table(results_list)
    fig.update_layout(width = 1100)
-   my_expander.plotly_chart(fig, width = 1100)
+   st.plotly_chart(fig, width = 1100)
 
+elif (option == 'Portfolio Optimizer'):
+ #Beta Columns
+   col1_s, col2_s = st.sidebar.beta_columns(2)
+   col1, col2, col3 = st.beta_columns((1, 2, 2))
 
+ #Get data 
+   symbols = "spy,iwm,eem,efa,gld,agg,hyg"
+   crypto_symbols = "btc-usd,eth-usd"
+  #  etf_data = bt.get(symbols, start='1993-01-01')
+  #  crypto_data = bt.get(crypto_symbols, start='2016-01-01') 
 
+ #Merge into dataframe
+  #  data = crypto_data.join(etf_data, how='outer')
+  #  data = data.dropna()
 
+ #daily optimal
+   returns = data.to_log_returns().dropna()
+   daily_opt = returns.calc_mean_var_weights().as_format(".2%")
+   fig = optomize_table(daily_opt)
+   col1.header("Daily Data")
+   fig.update_layout(width = 200, height = 300)
+   col1.plotly_chart(fig, width = 200, height = 300)
+
+   stock_dic = daily_opt.to_dict()
+
+   for key in stock_dic: #makes percents numbers 
+     stock_dic[key] = float(stock_dic[key].replace('%', ''))
+     if (stock_dic[key] == 0):
+       del stock_dic[key]
+   
+   st.write(stock_dic)
+   stock_list = list(stock_dic.keys()) #convert the dictionary into lists for plotting
+   percent_list = list(stock_dic.values())
+
+   
+
+   st.write(stock_dic)
+   fig = plot_pie(stock_list, percent_list)
+   col2.pyplot(fig)
+
+   strategy_ = bt.Strategy('Your Strategy Monthly', 
+                              [bt.algos.RunMonthly(), 
+                              bt.algos.SelectAll(), 
+                              bt.algos.WeighSpecified(**stock_dic),
+                              bt.algos.Rebalance()]) #Creating strategy
+
+   
+
+ #Quarterly Optimal 
+   quarterly_rets= data.asfreq("Q",method='ffill').to_log_returns().dropna()
+   quart_opt = quarterly_rets.calc_mean_var_weights().as_format(".2%")
+   fig = optomize_table(quart_opt)
+   col1.header("Quarterly Data")
+   fig.update_layout(width = 200, height = 300)
+   col1.plotly_chart(fig, width = 200, height = 300)

@@ -8,22 +8,27 @@ from tabulate import tabulate
 import plotly.graph_objects as go
 
 def line_chart(results_list):
-    ser = results_list[0]._get_series(None).rebase() #gets all the daily balances as a series 
-    ser2 = results_list[1]._get_series(None).rebase()
+    ser_r = results_list[0]._get_series(None).rebase() #gets all the daily balances as a series 
+    ser_c = results_list[1]._get_series(None).rebase()
+    ser_s = results_list[2]._get_series(None).rebase()
+    ser_a = results_list[3]._get_series(None).rebase()
    
-    result_final = pd.concat([ser, ser2], axis=1) #makes dataframe for both series
-    result_final.columns = ["Your Strategy Monthly", "60-40 Monthly"] 
-    #df = px.data.ser
+    result_final = pd.concat([ser_r, ser_c, ser_s, ser_a], axis=1) #makes dataframe for both series
+
+    result_final.columns = [ser_r.columns[0], ser_c.columns[0], ser_s.columns[0], ser_a.columns[0]] #labels
+    
+    
     fig = px.line(result_final, labels=dict(index="", value="", variable=""),
                     title="Portfolio Performance",
                     color_discrete_map={ # replaces default color mapping by value
-                        "Your Strategy Monthly": '#66F3EC', "60-40 Monthly": '#67F9AF'
+                        result_final.columns[0]: '#A90BFE', result_final.columns[1]: '#FF7052', result_final.columns[2]:'#66F3EC', result_final.columns[3]:'#67F9AF'
                     },
                     template="simple_white"
                     )
     fig.update_yaxes( # the y-axis is in dollars
         tickprefix="$", showgrid=True
     )
+    x = .82
     fig.update_layout(legend=dict(
         orientation="h",
         yanchor="bottom",
@@ -120,7 +125,7 @@ def scatter_plot(results_df):
 
     #probably should make these dynamic
     labels_ = ['Your Strategy', '60-40', 'SPY', 'AGG'] 
-    color=['tab:orange','tab:blue','tab:red', 'tab:green']
+    #color=['tab:orange','tab:blue','tab:red', 'tab:green']
 
     # #creating the plot 
     # fig, ax = plt.subplots()
@@ -133,7 +138,7 @@ def scatter_plot(results_df):
     # ax.legend()
 
     fig = px.scatter( x= xaxis_vol, y= yaxis_return, size = [4, 4, 4, 4], color = ["Your Strategy", "60-40 Portfolio", "SPY", "AGG"],
-                            color_discrete_sequence=['#66F3EC', '#67F9AF', '#F9C515', '#ac77f2'],
+                            color_discrete_sequence=['#A90BFE','#FF7052','#66F3EC', '#67F9AF'],
                             labels={
                             "x": "Monthly Vol (ann.) %",
                             "y": "Monthly Mean (ann.) %",
@@ -206,21 +211,26 @@ def balance_table(results, results_con):
                                             line_color = 'white',
                                             font = dict(color = 'black'),
                                             fill_color = '#dbdbdb' )) ])
-    fig.update_layout(margin = dict(l=0, r=20, t=0, b=0))
+    fig.update_layout(margin = dict(l=0, r=0, t=0, b=0))
     
     return fig
 
 def short_stats_table(results_list):
     stats_0 = results_list[0].display_lookback_returns() #these objects are the dataframes we want, just need to combine them and-
-    stats_1 = results_list[1].display_lookback_returns()   #make them into a nice table 
-    labels= ["Stats", "Your Strategy", "60-40 Portfolio"]
+    stats_1 = results_list[1].display_lookback_returns()   #make them into a nice table
+
+
+    labels= ["Stats", "Your Strategy", "60-40 Portfolio", "Difference"]
 
 
     #combining 
-    stats_combined = pd.concat([stats_0, stats_1], axis=1) 
+    stats_combined = pd.concat([stats_0, stats_1], axis=1)
     stats_combined.columns = ['Your_Strategy', "Portfolio6040"]
     stats_combined = stats_combined.dropna()
     
+    #adding new row of differences
+    stats_combined['Difference'] = stats_combined.apply(lambda row: 
+                                        str(round(float(row.Your_Strategy.replace('%', ''))- float(row.Portfolio6040.replace('%', '')), 2)) + '%', axis = 1)  
 
     fig = go.Figure(data=[go.Table(
                             header=dict(values= labels,
@@ -228,7 +238,7 @@ def short_stats_table(results_list):
                                         fill_color= '#a2a4a8',
                                         align=['center','center'],
                                         font=dict(color='white', size=10)),
-                            cells=dict(values=[stats_combined.index, stats_combined.Your_Strategy, stats_combined.Portfolio6040],
+                            cells=dict(values=[stats_combined.index, stats_combined.Your_Strategy, stats_combined.Portfolio6040, stats_combined.Difference],
                                         line_color = 'white',
                                         height = 30,
                                         font = dict(color = 'black'),
@@ -330,7 +340,7 @@ def monthly_table(results_list):
                                         line_color = '#dbdbdb',
                                         height = 30,
                                         font = dict(color = [['black', 'black', 'white', 'black','black', 'white', 'black', 'black', 'white', 'black', 'black', 'white', 'black', 'black']*14]),
-                                        fill_color = [['#66F3EC', '#67F9AF', date_color, '#66F3EC','#67F9AF', date_color, '#66F3EC', '#67F9AF', date_color, '#66F3EC', '#67F9AF', date_color, '#66F3EC', '#67F9AF']*14] )) ])
+                                        fill_color = [['#A90BFE', '#FF7052', date_color, '#A90BFE','#FF7052', date_color, '#A90BFE', '#FF7052', date_color, '#A90BFE', '#FF7052', date_color, '#A90BFE', '#FF7052']*14] )) ])
     fig.update_layout(margin = dict(l=0, r=0, t=0, b=0))
 
 
