@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import bt
 import plotly.express as px
 from tabulate import tabulate 
-from functions import alloc_table, balance_table, line_chart, monthly_returns_table, optomize_table, plot_pie, display_stats_combined, results_to_df, highlight_cols, scatter_plot, short_stats_table, sum_table, monthly_table
+from functions import alloc_table, balance_table, line_chart, monthly_returns_table, optomize_table, plot_pie, display_stats_combined, results_to_df, highlight_cols, scatter_plot, short_stats_table, stats_table, sum_table, monthly_table
 
 
 
@@ -51,7 +51,7 @@ class WeighSpecified(bt.Algo):
       return True
 
 st.sidebar.write("Options")
-option = st.sidebar.selectbox("Select and option", ('Flexible Dashboard', 'BTC Portfolio Dashboard', 'Portfolio Optimizer', 'Chart'))
+option = st.sidebar.selectbox("Select and option", ('Flexible Dashboard', 'BTC Portfolio Dashboard', 'Portfolio Optimizer'))
 start_date = '2017-01-01'
 
 
@@ -248,6 +248,8 @@ elif ( option == 'BTC Portfolio Dashboard'):
  #Beta Columns
    col1_s, col2_s = st.sidebar.beta_columns(2)
    col1, col2 = st.beta_columns((1, 2))
+   col3, col4, col5 = st.beta_columns((1,1,3))
+
    col1_top = col1.beta_container()
    col1_middle = col1.beta_container()
    col1_bot = col1.beta_container()
@@ -290,13 +292,13 @@ elif ( option == 'BTC Portfolio Dashboard'):
    stock_dic_agg     = {'spy': float(0)/100, 'agg': float(100)/100, stock_choice_3: float(0)/100} #all agg
    
    
-   strategy_ = bt.Strategy('Strategy 1', 
+   strategy_ = bt.Strategy('Your Strategy', 
                            [bt.algos.RunMonthly(), 
                            bt.algos.SelectAll(), 
                            bt.algos.WeighSpecified(**stock_dic),
                            bt.algos.Rebalance()]) #Creating strategy 
 
-   strategy_control = bt.Strategy('60-40', 
+   strategy_control = bt.Strategy('60-40 Portfolio', 
                            [bt.algos.RunMonthly(), 
                            bt.algos.SelectAll(), 
                            bt.algos.WeighSpecified(**stock_dic_control),
@@ -333,6 +335,7 @@ elif ( option == 'BTC Portfolio Dashboard'):
    fig = line_chart(results_list)
    col1.header("Returns Graph")
    col2.plotly_chart(fig)
+   col5.write("-    Click on the legend entries to choose which datasets to display")
 
  #Pie Chart 
    
@@ -384,16 +387,24 @@ elif ( option == 'BTC Portfolio Dashboard'):
    
    #my_expander = st.beta_expander("Show Monthly Returns")
    fig = monthly_table(results_list)
-   fig.update_layout(width = 1100)
-   st.plotly_chart(fig, width = 1100)
+   fig.update_layout(width = 1100, height = 2000)
+   st.plotly_chart(fig, width = 1100, height = 2000)
+ #Stats Table
+   stats_expander = col1.beta_expander("Click to Show Strategy Statistics")
+   fig = stats_table(results_list)
+   fig.update_layout(width = 380)
+   stats_expander.plotly_chart(fig, width = 380)
 
 if ( option == 'Flexible Dashboard'):
  #Beta Columns and Containers 
    col1_s, col2_s = st.sidebar.beta_columns(2)
    col1, col2 = st.beta_columns((1, 2))
+   col3, col4, col5 = st.beta_columns((1,1,3))
+   
    col1_top = col1.beta_container()
    col1_middle = col1.beta_container()
    col1_bot = col1.beta_container()
+   
    col2t =col2.beta_container()
    col2b =col2.beta_container()
    
@@ -482,7 +493,7 @@ if ( option == 'Flexible Dashboard'):
                               bt.algos.SelectAll(), 
                               bt.algos.WeighSpecified(**stock_dic),
                               bt.algos.Rebalance()]) #Creating strategy
-   strategy_none = bt.Strategy('None', 
+   strategy_none = bt.Strategy('No Rebalances', 
                               [bt.algos.RunOnce(), 
                               bt.algos.SelectAll(), 
                               bt.algos.WeighSpecified(**stock_dic),
@@ -577,7 +588,7 @@ if ( option == 'Flexible Dashboard'):
    if box:
      figure = fig2
    col2b.plotly_chart(figure)
-
+   col5.write("-    Click on the legend entries to choose which datasets to display")
 
  #Pie Chart
    if (rebalances == 'None'): #pie chart is wrong since no rebalances
@@ -642,8 +653,14 @@ if ( option == 'Flexible Dashboard'):
  #Monthly Table 
    #my_expander = st.beta_expander("Show Monthly Returns")
    fig = monthly_table(results_list)
-   fig.update_layout(width = 1100)
-   st.plotly_chart(fig, width = 1100)
+   fig.update_layout(width = 1100, height = 800)
+   st.plotly_chart(fig, width = 1100, height = 800)
+
+ #Stats Table
+   stats_expander = col1.beta_expander("Click to Show Strategy Statistics")
+   fig = stats_table(results_list)
+   fig.update_layout(width = 380)
+   stats_expander.plotly_chart(fig, width = 380)
 
 elif (option == 'Portfolio Optimizer'):
  #Beta Columns
@@ -670,26 +687,26 @@ elif (option == 'Portfolio Optimizer'):
 
    stock_dic = daily_opt.to_dict()
 
-   for key in stock_dic: #makes percents numbers 
-     stock_dic[key] = float(stock_dic[key].replace('%', ''))
-     if (stock_dic[key] == 0):
-       del stock_dic[key]
+  #  for key in stock_dic: #makes percents numbers 
+  #    stock_dic[key] = float(stock_dic[key].replace('%', ''))
+  #    if (stock_dic[key] == 0):
+  #      del stock_dic[key]
    
-   st.write(stock_dic)
-   stock_list = list(stock_dic.keys()) #convert the dictionary into lists for plotting
-   percent_list = list(stock_dic.values())
+  #  st.write(stock_dic)
+  #  stock_list = list(stock_dic.keys()) #convert the dictionary into lists for plotting
+  #  percent_list = list(stock_dic.values())
 
    
 
-   st.write(stock_dic)
-   fig = plot_pie(stock_list, percent_list)
-   col2.pyplot(fig)
+  #  st.write(stock_dic)
+  #  fig = plot_pie(stock_list, percent_list)
+  #  col2.pyplot(fig)
 
-   strategy_ = bt.Strategy('Your Strategy Monthly', 
-                              [bt.algos.RunMonthly(), 
-                              bt.algos.SelectAll(), 
-                              bt.algos.WeighSpecified(**stock_dic),
-                              bt.algos.Rebalance()]) #Creating strategy
+  #  strategy_ = bt.Strategy('Your Strategy Monthly', 
+  #                             [bt.algos.RunMonthly(), 
+  #                             bt.algos.SelectAll(), 
+  #                             bt.algos.WeighSpecified(**stock_dic),
+  #                             bt.algos.Rebalance()]) #Creating strategy
 
    
 

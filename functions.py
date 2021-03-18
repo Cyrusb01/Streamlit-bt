@@ -7,6 +7,11 @@ import bt
 from tabulate import tabulate
 import plotly.graph_objects as go
 
+strategy_color = '#A90BFE'
+P6040_color = '#FF7052'
+spy_color = '#66F3EC'
+agg_color = '#67F9AF'
+
 def line_chart(results_list):
     ser_r = results_list[0]._get_series(None).rebase() #gets all the daily balances as a series 
     ser_c = results_list[1]._get_series(None).rebase()
@@ -256,6 +261,20 @@ def monthly_table(results_list):
     res_con = results_list[1][keyc].return_table
     df_c = pd.DataFrame(res_con)
 
+    keys = results_list[2]._get_backtest(0) #syntax for getting the monthly returns data frame 
+    res_spy = results_list[2][keys].return_table
+    df_s = pd.DataFrame(res_spy)
+
+    keya = results_list[3]._get_backtest(0)  
+    res_agg = results_list[3][keya].return_table
+    df_a = pd.DataFrame(res_agg)
+
+    strategy_color = '#A90BFE'
+    P6040_color = '#FF7052'
+    spy_color = '#66F3EC'
+    agg_color = '#67F9AF'
+    label_color = '#131c4f'
+
     #hard part of this is combining
     index = res_mon.index
     index = index.tolist()
@@ -289,12 +308,28 @@ def monthly_table(results_list):
         res_rows.append(temp)
     
     con_rows = [] #this creates the list of the "60-40 Portfolio " then all the numbers
-    for i in range(len(res_mon.index)):
+    for i in range(len(res_con.index)):
         temp = []
         temp += ["60-40 Portfolio"]
         for j in range(len(res_con.columns)):
             temp += [str((round(df_c.iloc[i][j] *100, 2))) + '%'] #this takes the value in, round to 2 decimal places, and adds the percent sign
         con_rows.append(temp)
+
+    spy_rows = [] #this creates the list of the "60-40 Portfolio " then all the numbers
+    for i in range(len(res_spy.index)):
+        temp = []
+        temp += ["SPY"]
+        for j in range(len(res_spy.columns)):
+            temp += [str((round(df_s.iloc[i][j] *100, 2))) + '%'] #this takes the value in, round to 2 decimal places, and adds the percent sign
+        spy_rows.append(temp)
+    
+    agg_rows = [] #this creates the list of the "60-40 Portfolio " then all the numbers
+    for i in range(len(res_agg.index)):
+        temp = []
+        temp += ["AGG"]
+        for j in range(len(res_agg.columns)):
+            temp += [str((round(df_a.iloc[i][j] *100, 2))) + '%'] #this takes the value in, round to 2 decimal places, and adds the percent sign
+        agg_rows.append(temp)
 
     length = len(year_rows)
     
@@ -303,6 +338,8 @@ def monthly_table(results_list):
         list_4_df.append(year_rows[(length-1)-i])
         list_4_df.append(res_rows[(length-1)-i])
         list_4_df.append(con_rows[(length-1)-i])
+        list_4_df.append(spy_rows[(length-1)-i])
+        list_4_df.append(agg_rows[(length-1)-i])
     
     label_row = year_rows[length-1] #grabs the label row
     for i in range (len(year_rows)): # this loop is to make all the labels bold
@@ -321,9 +358,29 @@ def monthly_table(results_list):
         con_rows[i][0] = str(con_rows[i][0])
         con_rows[i][0] = '<b>' + con_rows[i][0] + '<b>'   
 
+        spy_rows[i][0] = str(spy_rows[i][0])
+        spy_rows[i][0] = '<b>' + spy_rows[i][0] + '<b>'
+
+        agg_rows[i][0] = str(agg_rows[i][0])
+        agg_rows[i][0] = '<b>' + agg_rows[i][0] + '<b>'
+
     df = pd.DataFrame(list_4_df) #creates a dataframe of the lists
     df = df.drop(df.index[0]) #drops the label row, this is for creating a plotly table better 
-        
+    
+    color_list = []
+    font_color_list = []
+    for i in range(length):
+        color_list += [strategy_color]
+        color_list += [P6040_color]
+        color_list += [spy_color]
+        color_list += [agg_color]
+        color_list += [label_color]
+        font_color_list += ['black']
+        font_color_list += ['black']
+        font_color_list += ['black']
+        font_color_list += ['black']
+        font_color_list += ['white']
+
     df.columns = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n']
     #making the table 
     date_color = '#131c4f'
@@ -339,15 +396,18 @@ def monthly_table(results_list):
                             cells=dict(values=[df.a, df.b, df.c, df.d, df.e, df.f, df.g, df.h, df.i, df.j, df.k, df.l, df.m, df.n],
                                         line_color = '#dbdbdb',
                                         height = 30,
-                                        font = dict(color = [['black', 'black', 'white', 'black','black', 'white', 'black', 'black', 'white', 'black', 'black', 'white', 'black', 'black']*14]),
-                                        fill_color = [['#A90BFE', '#FF7052', date_color, '#A90BFE','#FF7052', date_color, '#A90BFE', '#FF7052', date_color, '#A90BFE', '#FF7052', date_color, '#A90BFE', '#FF7052']*14] )) ])
+                                        font = dict(color = [font_color_list*14]),
+                                        fill_color = [color_list*14] )) ])
     fig.update_layout(margin = dict(l=0, r=0, t=0, b=0))
 
 
     return fig
+    #['#A90BFE', '#FF7052', date_color, '#A90BFE','#FF7052', date_color, '#A90BFE', '#FF7052', date_color, '#A90BFE', '#FF7052', date_color, '#A90BFE', '#FF7052']
+    #['black', 'black', 'white', 'black','black', 'white', 'black', 'black', 'white', 'black', 'black', 'white', 'black', 'black']
 
 def optomize_table(df):
     df = pd.DataFrame(df)
+    
     #combining 
     labels = ['<b>Tickers<b>', '<b>Allocation<b>']
 
@@ -366,6 +426,70 @@ def optomize_table(df):
                                         font = dict(color = 'black'),
                                         fill_color = '#dbdbdb' )) ])
     fig.update_layout(margin = dict(l=0, r=0, t=0, b=0))
+    return fig
+
+def stats_table(results_list):
+
+    df_list = results_to_df(results_list) #The results arent dataframes, so need to make them dataframes
+
+    stats_combined = pd.concat([df_list[0], df_list[1]], axis=1) #this combines them 
+    stats_combined.columns = ['Stats', 'Your Strategy', 'Drop', "60-40 Portfolio"]
+    stats_combined = stats_combined.drop(['Drop'], axis =1 )
+
+    stats_col = []
+    stats_col.append(stats_combined.iloc[1][0])
+    stats_col.append(stats_combined.iloc[2][0])
+    stats_col.append(stats_combined.iloc[4][0])
+    stats_col.append(stats_combined.iloc[8][0])
+    stats_col.append(stats_combined.iloc[27][0])
+    stats_col.append(stats_combined.iloc[28][0])
+    stats_col.append(stats_combined.iloc[29][0])
+    stats_col.append(stats_combined.iloc[30][0])
+    stats_col.append(stats_combined.iloc[33][0])
+    stats_col.append(stats_combined.iloc[34][0])
+    
+    strat1_col = []
+    strat1_col.append(stats_combined.iloc[1][1])
+    strat1_col.append(stats_combined.iloc[2][1])
+    strat1_col.append(stats_combined.iloc[4][1])
+    strat1_col.append(stats_combined.iloc[8][1])
+    strat1_col.append(stats_combined.iloc[27][1])
+    strat1_col.append(stats_combined.iloc[28][1])
+    strat1_col.append(stats_combined.iloc[29][1])
+    strat1_col.append(stats_combined.iloc[30][1])
+    strat1_col.append(stats_combined.iloc[33][1])
+    strat1_col.append(stats_combined.iloc[34][1])
+
+    strat2_col = []
+    strat2_col.append(stats_combined.iloc[1][2])
+    strat2_col.append(stats_combined.iloc[2][2])
+    strat2_col.append(stats_combined.iloc[4][2])
+    strat2_col.append(stats_combined.iloc[8][2])
+    strat2_col.append(stats_combined.iloc[27][2])
+    strat2_col.append(stats_combined.iloc[28][2])
+    strat2_col.append(stats_combined.iloc[29][2])
+    strat2_col.append(stats_combined.iloc[30][2])
+    strat2_col.append(stats_combined.iloc[33][2])
+    strat2_col.append(stats_combined.iloc[34][2])
+
+    #creates a datframe with exactly what we need
+    df = pd.DataFrame(list(zip(stats_col, strat1_col, strat2_col)), 
+               columns =['Stats', 'Your_Strategy', 'Portfolio6040'])
+    labels = ['Stats', "Your Strategy", "60-40 Portfolio"]
+    
+    fig = go.Figure(data=[go.Table(
+                            header=dict(values= labels,
+                                        line_color= 'black',
+                                        fill_color= '#a2a4a8',
+                                        align=['center','center'],
+                                        font=dict(color='white', size=10)),
+                            cells=dict(values=[df.Stats, df.Your_Strategy, df.Portfolio6040],
+                                        line_color = 'white',
+                                        height = 30,
+                                        font = dict(color = 'black'),
+                                        fill_color = '#dbdbdb' )) ])
+    fig.update_layout(margin = dict(l=0, r=0, t=0, b=0))
+
     return fig
 
 
