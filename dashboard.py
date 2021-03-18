@@ -37,6 +37,7 @@ word = "Dashboard"
 #st.title(word)
 
 
+
 class WeighSpecified(bt.Algo):
 
    def __init__(self, **weights):
