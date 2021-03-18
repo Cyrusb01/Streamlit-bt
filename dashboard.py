@@ -14,7 +14,7 @@ st.set_page_config(layout="wide") #makes page wider
 
 
 
-
+@st.cache
 def get_data(dontchange):
   #st.write("caches inside")
   s_data = bt.get('spy,efa,iwm,vwo,ibb,agg,hyg,gld,slv,tsla,aapl,msft,qqq', start = '2017-01-01')
@@ -248,14 +248,7 @@ if ( option == 'Chart'):
    col2.plotly_chart(fig)
 
 elif ( option == 'BTC Portfolio Dashboard'):
-   @st.cache
-   def print_x(testing_x):
-      st.write("in printx")
-      dl = 56
-      return dl
-   st.write("otuside of printx")
-   testing_x = 45
-   frog = print_x(testing_x)
+   
  #Beta Columns
    col1_s, col2_s = st.sidebar.beta_columns(2)
    col1, col2 = st.beta_columns((1, 2))
