@@ -248,18 +248,6 @@ if ( option == 'Chart'):
    col2.plotly_chart(fig)
 
 elif ( option == 'BTC Portfolio Dashboard'):
-   @st.cache(allow_output_mutation=True)
-   def get_data_f(dontchange):
-    #st.write("caches inside")
-    s_data = bt.get('spy,efa,iwm,vwo,ibb,agg,hyg,gld,slv,tsla,aapl,msft,qqq', start = '2017-01-01')
-    cry_data = bt.get('btc-usd,eth-usd', start = '2017-01-01')
-    data_cache = cry_data.join(s_data, how='outer')
-    data_cache = data_cache.dropna()
-    return data_cache
-
-   #st.write('caches')
-   dontchange = 0
-   data = get_data_f(dontchange)
  #Beta Columns
    col1_s, col2_s = st.sidebar.beta_columns(2)
    col1, col2 = st.beta_columns((1, 2))
@@ -411,18 +399,6 @@ elif ( option == 'BTC Portfolio Dashboard'):
    stats_expander.plotly_chart(fig, width = 380)
 
 if ( option == 'Flexible Dashboard'):
-   @st.cache(allow_output_mutation=True)
-   def get_data_f(dontchange):
-    #st.write("caches inside")
-    s_data = bt.get('spy,efa,iwm,vwo,ibb,agg,hyg,gld,slv,tsla,aapl,msft,qqq', start = '2017-01-01')
-    cry_data = bt.get('btc-usd,eth-usd', start = '2017-01-01')
-    data_cache = cry_data.join(s_data, how='outer')
-    data_cache = data_cache.dropna()
-    return data_cache
-
-   #st.write('caches')
-   dontchange = 0
-   data = get_data_f(dontchange)
  #Beta Columns and Containers 
    col1_s, col2_s = st.sidebar.beta_columns(2)
    col1, col2 = st.beta_columns((1, 2))
