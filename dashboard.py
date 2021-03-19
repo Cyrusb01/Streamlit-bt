@@ -1,3 +1,4 @@
+from logging import error
 from pandas._config.config import reset_option
 import streamlit as st 
 import pandas as pd
@@ -51,7 +52,8 @@ class WeighSpecified(bt.Algo):
       return True
 
 st.sidebar.write("Options")
-option = st.sidebar.selectbox("Select and option", ('Flexible Dashboard', 'BTC Portfolio Dashboard', 'Portfolio Optimizer'))
+
+option = st.sidebar.selectbox("Select an Option", ('Portfolio Optimizer','Flexible Dashboard', 'BTC Portfolio Dashboard'))
 start_date = '2017-01-01'
 
 
@@ -430,7 +432,9 @@ if ( option == 'Flexible Dashboard'):
    percent_3 = col2_s.text_input( "% Allocation", value = 5, max_chars= 3)
    stock_choice_3 = stock_choice_3.lower()
    #data_3 = bt.get(stock_choice_3, start = start_date)
-
+   
+   if(float(percent_1)+float(percent_2)+float(percent_3) != 100):
+     st.sidebar.error("Allocation Must Equal 100")
    #allows us to combine the datasets to account for the difference in reg vs. Crypto 
   #  data = data_1.join(data_2, how='outer')
   #  data = data.join(data_3, how= 'outer')
@@ -666,93 +670,417 @@ elif (option == 'Portfolio Optimizer'):
    col1_s, col2_s = st.sidebar.beta_columns(2)
    col1, col2 = st.beta_columns((1, 2))
 
- #Get data 
-   symbols = 'spy,iwm,eem,efa,gld,agg,hyg'
-   crypto_symbols = 'btc-usd,eth-usd'
-   etf_data = bt.get(symbols, start='1993-01-01')
-   crypto_data = bt.get(crypto_symbols, start='2016-01-01') 
+ #Get data
+   stock_symbols = st.sidebar.text_input("Enter the Stock Tickers Spaced", value = "spy iwm eem efa gld agg hyg" )
+   crypto_symbols = st.sidebar.text_input("Enter Crypto Tickers Spaced", value= 'btc-usd')
+   stock_symbols = stock_symbols.replace(' ', ',')
+   crypto_symbols = crypto_symbols.replace(' ', ',')
+   data_type = st.sidebar.selectbox("Select the Data Frequency", ('Daily Data', 'Monthly Data', 'Quarterly Data', 'Yearly Data')) 
+  #  symbols = 'spy,iwm,eem,efa,gld,agg,hyg'
+  #  crypto_symbols = 'btc-usd,eth-usd'
+   stock_data = bt.get(stock_symbols, start='1993-01-01')
+   crypto_data = bt.get(crypto_symbols, start='2016-01-01')
 
  #Merge into dataframe
-   data = crypto_data.join(etf_data, how='outer')
-   data = data.dropna()
+   data_ = crypto_data.join(stock_data, how='outer')
+   data_ = data_.dropna()
 
- #daily optimal
-  #gets daily optimal data
-   returns = data.to_log_returns().dropna()
-   daily_opt = returns.calc_mean_var_weights().as_format(".2%")
-   fig = optomize_table(daily_opt)
+ #Daily optimal
+   if (data_type == "Daily Data"):
 
-  #table
-   col1.header("Daily Data")
-   fig.update_layout(width = 200, height = 300)
-   col1.plotly_chart(fig, width = 200, height = 300)
+   #gets daily optimal data
+    returns = data_.to_log_returns().dropna()
+    daily_opt = returns.calc_mean_var_weights().as_format(".2%")
+    
+   #table
+    fig = optomize_table(daily_opt)
+    col1.header("Daily Data")
+    fig.update_layout(width = 300, height = 450)
+    col1.plotly_chart(fig, width = 300, height = 450)
+    
+   #preparing data for charts
+    stock_dic = daily_opt.to_dict()
+
+    for key in stock_dic: #makes percents numbers 
+      stock_dic[key] = float(stock_dic[key].replace('%', ''))
+      stock_dic[key] = stock_dic[key]/100
+    
+    stock_list = list(stock_dic.keys()) #convert the dictionary into lists for plotting
+    percent_list = list(stock_dic.values())
+
+    temp = []
+    temp_stock = []
+    for i in range(len(percent_list)): #Takes out values of 0 
+      if (percent_list[i] != 0):
+        temp.append(percent_list[i])
+        temp_stock.append(stock_list[i])
+
+    stock_list = temp_stock
+    percent_list= temp
+
+    strategy_color = '#A90BFE'
+    P6040_color = '#FF7052'
+    spy_color = '#66F3EC'
+    agg_color = '#67F9AF'
+    
+    stock_dic_spy     = {'spy': float(100)/100, 'agg': float(0)/100, 'gme': float(0)/100} #all spy
+    stock_dic_agg     = {'spy': float(0)/100, 'agg': float(100)/100, 'gme': float(0)/100} #all agg
+    
+    strategy_op = bt.Strategy('Your Portolio Optomized', 
+                                [bt.algos.RunMonthly(), 
+                                bt.algos.SelectAll(), 
+                                bt.algos.WeighSpecified(**stock_dic),
+                                bt.algos.Rebalance()]) #Creating strategy
+
+    strategy_port = bt.Strategy('Your Portolio Equal', 
+                                [bt.algos.RunMonthly(), 
+                                bt.algos.SelectAll(), 
+                                bt.algos.WeighEqually(),
+                                bt.algos.Rebalance()]) #Creating strategy
+    strategy_spy = bt.Strategy('SPY', 
+                            [bt.algos.RunMonthly(), 
+                            bt.algos.SelectAll(), 
+                            bt.algos.WeighSpecified(**stock_dic_spy),
+                            bt.algos.Rebalance()]) #Creating strategy
+
+    strategy_agg = bt.Strategy('AGG', 
+                            [bt.algos.RunMonthly(), 
+                            bt.algos.SelectAll(), 
+                            bt.algos.WeighSpecified(**stock_dic_agg),
+                            bt.algos.Rebalance()]) #Creating strategy
+
+    test_op = bt.Backtest(strategy_op, data_)
+    results_op = bt.run(test_op)
+
+    test_port = bt.Backtest(strategy_port, data_)
+    results_port = bt.run(test_port)
+
+    test_spy = bt.Backtest(strategy_spy, data)
+    results_spy = bt.run(test_spy)
+    
+    test_agg = bt.Backtest(strategy_agg, data)
+    results_agg = bt.run(test_agg)
+
+   #pie chart
+    results_list = [results_op, results_port]
+    pie_colors = [strategy_color, P6040_color, spy_color, agg_color, '#7496F3', '#B7FA59', 'brown', '#EE4444', 'gold']
+    fig = plot_pie(stock_list, percent_list, pie_colors)
+    #fig.set_size_inches(18.5, 18.5, forward=True) #how to change dimensions since pie is in matplotlib
+    #col1.header("Optomized Portfolio")
+    col1.pyplot(fig)
+
+   #line chart
+    fig = line_chart(results_list)
+    fig.update_layout(width = 750, height = 400)
+    col2.header("Daily Performance")
+    col2.plotly_chart(fig, width = 750, height = 400)
+    
+  #Scatter PLot 
+    results_list.append(results_spy)
+    results_list.append(results_agg)
+
+    results_df = results_to_df(results_list)
+    fig = scatter_plot(results_df) #scatter function in functions
+    fig.update_layout(width = 750, height = 500)
+    col2.plotly_chart(fig, width = 750, height =500)
    
-  #preparing data for charts
-   stock_dic = daily_opt.to_dict()
+ #Monthly optimal
+   if (data_type == "Monthly Data"):
 
-   for key in stock_dic: #makes percents numbers 
-     stock_dic[key] = float(stock_dic[key].replace('%', ''))
-     stock_dic[key] = stock_dic[key]/100
+   #gets daily optimal data
+    returns = data_.asfreq("M",method='ffill').to_log_returns().dropna()
+    mon_opt = returns.calc_mean_var_weights().as_format(".2%")
+    
+   #table
+    fig = optomize_table(mon_opt)
+    col1.header("Monthly Data")
+    fig.update_layout(width = 300, height = 450)
+    col1.plotly_chart(fig, width = 300, height = 450)
+    
+   #preparing data for charts
+    stock_dic = mon_opt.to_dict()
+
+    for key in stock_dic: #makes percents numbers 
+      stock_dic[key] = float(stock_dic[key].replace('%', ''))
+      stock_dic[key] = stock_dic[key]/100
+    
+    stock_list = list(stock_dic.keys()) #convert the dictionary into lists for plotting
+    percent_list = list(stock_dic.values())
+
+    temp = []
+    temp_stock = []
+    for i in range(len(percent_list)): #Takes out values of 0 
+      if (percent_list[i] != 0):
+        temp.append(percent_list[i])
+        temp_stock.append(stock_list[i])
+
+    stock_list = temp_stock
+    percent_list= temp
+
+    strategy_color = '#A90BFE'
+    P6040_color = '#FF7052'
+    spy_color = '#66F3EC'
+    agg_color = '#67F9AF'
+    
+    stock_dic_spy     = {'spy': float(100)/100, 'agg': float(0)/100, 'gme': float(0)/100} #all spy
+    stock_dic_agg     = {'spy': float(0)/100, 'agg': float(100)/100, 'gme': float(0)/100} #all agg
+    
+    strategy_op = bt.Strategy('Your Portolio Optomized', 
+                                [bt.algos.RunMonthly(), 
+                                bt.algos.SelectAll(), 
+                                bt.algos.WeighSpecified(**stock_dic),
+                                bt.algos.Rebalance()]) #Creating strategy
+
+    strategy_port = bt.Strategy('Your Portolio Equal', 
+                                [bt.algos.RunMonthly(), 
+                                bt.algos.SelectAll(), 
+                                bt.algos.WeighEqually(),
+                                bt.algos.Rebalance()]) #Creating strategy
+    strategy_spy = bt.Strategy('SPY', 
+                            [bt.algos.RunMonthly(), 
+                            bt.algos.SelectAll(), 
+                            bt.algos.WeighSpecified(**stock_dic_spy),
+                            bt.algos.Rebalance()]) #Creating strategy
+
+    strategy_agg = bt.Strategy('AGG', 
+                            [bt.algos.RunMonthly(), 
+                            bt.algos.SelectAll(), 
+                            bt.algos.WeighSpecified(**stock_dic_agg),
+                            bt.algos.Rebalance()]) #Creating strategy
+
+    test_op = bt.Backtest(strategy_op, data_)
+    results_op = bt.run(test_op)
+
+    test_port = bt.Backtest(strategy_port, data_)
+    results_port = bt.run(test_port)
+
+    test_spy = bt.Backtest(strategy_spy, data)
+    results_spy = bt.run(test_spy)
+    
+    test_agg = bt.Backtest(strategy_agg, data)
+    results_agg = bt.run(test_agg)
+
+   #pie chart
+    results_list = [results_op, results_port]
+    pie_colors = [strategy_color, P6040_color, spy_color, agg_color, '#7496F3', '#B7FA59', 'brown', '#EE4444', 'gold']
+    fig = plot_pie(stock_list, percent_list, pie_colors)
+    #fig.set_size_inches(18.5, 18.5, forward=True) #how to change dimensions since pie is in matplotlib
+    #col1.header("Optomized Portfolio")
+    col1.pyplot(fig)
+
+   #line chart
+    fig = line_chart(results_list)
+    fig.update_layout(width = 750, height = 400)
+    col2.header("Daily Performance")
+    col2.plotly_chart(fig, width = 750, height = 400)
+    
+  #Scatter PLot 
+    results_list.append(results_spy)
+    results_list.append(results_agg)
+
+    results_df = results_to_df(results_list)
+    fig = scatter_plot(results_df) #scatter function in functions
+    fig.update_layout(width = 750, height = 500)
+    col2.plotly_chart(fig, width = 750, height =500)
    
-   st.write(stock_dic)
-   stock_list = list(stock_dic.keys()) #convert the dictionary into lists for plotting
-   percent_list = list(stock_dic.values())
-
-   temp = []
-   temp_stock = []
-   for i in range(len(percent_list)): #Takes out values of 0 
-     if (percent_list[i] != 0):
-       temp.append(percent_list[i])
-       temp_stock.append(stock_list[i])
-
-   stock_list = temp_stock
-   percent_list= temp
-
-   strategy_color = '#A90BFE'
-   P6040_color = '#FF7052'
-   spy_color = '#66F3EC'
-   agg_color = '#67F9AF'
-
-   
-   strategy_op = bt.Strategy('Your Portolio Optomized', 
-                              [bt.algos.RunMonthly(), 
-                              bt.algos.SelectAll(), 
-                              bt.algos.WeighSpecified(**stock_dic),
-                              bt.algos.Rebalance()]) #Creating strategy
-
-   strategy_port = bt.Strategy('Your Portolio Equal', 
-                              [bt.algos.RunMonthly(), 
-                              bt.algos.SelectAll(), 
-                              bt.algos.WeighEqually(),
-                              bt.algos.Rebalance()]) #Creating strategy
-
-   test_op = bt.Backtest(strategy_op, data)
-   results_op = bt.run(test_op)
-
-   test_port = bt.Backtest(strategy_port, data)
-   results_port = bt.run(test_port)
-
-  #pie chart
-   results_list = [results_op, results_port]
-   pie_colors = [strategy_color, P6040_color, spy_color, agg_color, '#7496F3', '#B7FA59', 'brown', '#EE4444', 'gold']
-   fig = plot_pie(stock_list, percent_list, pie_colors)
-   #fig.set_size_inches(18.5, 18.5, forward=True) #how to change dimensions since pie is in matplotlib
-   col1.header("Optomized Portfolio")
-   col1.pyplot(fig)
-
-  #line chart
-   fig = line_chart(results_list)
-   fig.update_layout(width = 500, height = 300)
-   col2.header("Daily Performance")
-   col2.plotly_chart(fig, width = 600, height = 300)
-   
-
-   
-
  #Quarterly Optimal 
-   quarterly_rets= data.asfreq("Q",method='ffill').to_log_returns().dropna()
-   quart_opt = quarterly_rets.calc_mean_var_weights().as_format(".2%")
-   fig = optomize_table(quart_opt)
-   col1.header("Quarterly Data")
-   fig.update_layout(width = 200, height = 300)
-   col1.plotly_chart(fig, width = 200, height = 300)
+   if (data_type == "Quarterly Data"):
+
+   #gets quarterly optimal data   
+    quarterly_rets = data_.asfreq("Q",method='ffill').to_log_returns().dropna()
+    quart_opt = quarterly_rets.calc_mean_var_weights().as_format(".2%")
+
+   #table
+    fig = optomize_table(quart_opt)
+    col1.header("Quarterly Data")
+    fig.update_layout(width = 300, height = 450)
+    col1.plotly_chart(fig, width = 300, height = 450)
+    
+   #preparing data for charts
+    stock_dic = quart_opt.to_dict()
+
+    for key in stock_dic: #makes percents numbers 
+      stock_dic[key] = float(stock_dic[key].replace('%', ''))
+      stock_dic[key] = stock_dic[key]/100
+    
+    stock_list = list(stock_dic.keys()) #convert the dictionary into lists for plotting
+    percent_list = list(stock_dic.values())
+
+    temp = []
+    temp_stock = []
+    for i in range(len(percent_list)): #Takes out values of 0 
+      if (percent_list[i] != 0):
+        temp.append(percent_list[i])
+        temp_stock.append(stock_list[i])
+
+    stock_list = temp_stock
+    percent_list= temp
+
+    strategy_color = '#A90BFE'
+    P6040_color = '#FF7052'
+    spy_color = '#66F3EC'
+    agg_color = '#67F9AF'
+    
+    stock_dic_spy     = {'spy': float(100)/100, 'agg': float(0)/100, 'gme': float(0)/100} #all spy
+    stock_dic_agg     = {'spy': float(0)/100, 'agg': float(100)/100, 'gme': float(0)/100} #all agg
+    
+    strategy_op = bt.Strategy('Your Portolio Optomized', 
+                                [bt.algos.RunMonthly(), 
+                                bt.algos.SelectAll(), 
+                                bt.algos.WeighSpecified(**stock_dic),
+                                bt.algos.Rebalance()]) #Creating strategy
+
+    strategy_port = bt.Strategy('Your Portolio Equal', 
+                                [bt.algos.RunMonthly(), 
+                                bt.algos.SelectAll(), 
+                                bt.algos.WeighEqually(),
+                                bt.algos.Rebalance()]) #Creating strategy
+    strategy_spy = bt.Strategy('SPY', 
+                            [bt.algos.RunMonthly(), 
+                            bt.algos.SelectAll(), 
+                            bt.algos.WeighSpecified(**stock_dic_spy),
+                            bt.algos.Rebalance()]) #Creating strategy
+
+    strategy_agg = bt.Strategy('AGG', 
+                            [bt.algos.RunMonthly(), 
+                            bt.algos.SelectAll(), 
+                            bt.algos.WeighSpecified(**stock_dic_agg),
+                            bt.algos.Rebalance()]) #Creating strategy
+
+    test_op = bt.Backtest(strategy_op, data_)
+    results_op = bt.run(test_op)
+
+    test_port = bt.Backtest(strategy_port, data_)
+    results_port = bt.run(test_port)
+
+    test_spy = bt.Backtest(strategy_spy, data)
+    results_spy = bt.run(test_spy)
+    
+    test_agg = bt.Backtest(strategy_agg, data)
+    results_agg = bt.run(test_agg)
+
+   #pie chart
+    results_list = [results_op, results_port]
+    pie_colors = [strategy_color, P6040_color, spy_color, agg_color, '#7496F3', '#B7FA59', 'brown', '#EE4444', 'gold']
+    fig = plot_pie(stock_list, percent_list, pie_colors)
+    #fig.set_size_inches(18.5, 18.5, forward=True) #how to change dimensions since pie is in matplotlib
+    #col1.header("Optomized Portfolio")
+    col1.pyplot(fig)
+
+   #line chart
+    fig = line_chart(results_list)
+    fig.update_layout(width = 750, height = 400)
+    col2.header("Daily Performance")
+    col2.plotly_chart(fig, width = 750, height = 400)
+    
+   #Scatter PLot 
+    results_list.append(results_spy)
+    results_list.append(results_agg)
+
+    results_df = results_to_df(results_list)
+    fig = scatter_plot(results_df) #scatter function in functions
+    fig.update_layout(width = 750, height = 500)
+    col2.plotly_chart(fig, width = 750, height =500)
+
+ #Yearly Optimal 
+   if (data_type == "Yearly Data"):
+
+   #gets Yearly optimal data   
+    year_rets = data_.asfreq("Y",method='ffill').to_log_returns().dropna()
+    year_opt = year_rets.calc_mean_var_weights().as_format(".2%")
+    fig = optomize_table(year_opt)
+    col1.header("Yearly Data")
+    fig.update_layout(width = 200, height = 300)
+    col1.plotly_chart(fig, width = 200, height = 300)
+
+   #table
+    fig = optomize_table(year_opt)
+    col1.header("Yearly Data")
+    fig.update_layout(width = 300, height = 450)
+    col1.plotly_chart(fig, width = 300, height = 450)
+    
+   #preparing data for charts
+    stock_dic = year_opt.to_dict()
+
+    for key in stock_dic: #makes percents numbers 
+      stock_dic[key] = float(stock_dic[key].replace('%', ''))
+      stock_dic[key] = stock_dic[key]/100
+    
+    stock_list = list(stock_dic.keys()) #convert the dictionary into lists for plotting
+    percent_list = list(stock_dic.values())
+
+    temp = []
+    temp_stock = []
+    for i in range(len(percent_list)): #Takes out values of 0 
+      if (percent_list[i] != 0):
+        temp.append(percent_list[i])
+        temp_stock.append(stock_list[i])
+
+    stock_list = temp_stock
+    percent_list= temp
+
+    strategy_color = '#A90BFE'
+    P6040_color = '#FF7052'
+    spy_color = '#66F3EC'
+    agg_color = '#67F9AF'
+    
+    stock_dic_spy     = {'spy': float(100)/100, 'agg': float(0)/100, 'gme': float(0)/100} #all spy
+    stock_dic_agg     = {'spy': float(0)/100, 'agg': float(100)/100, 'gme': float(0)/100} #all agg
+    
+    strategy_op = bt.Strategy('Your Portolio Optomized', 
+                                [bt.algos.RunMonthly(), 
+                                bt.algos.SelectAll(), 
+                                bt.algos.WeighSpecified(**stock_dic),
+                                bt.algos.Rebalance()]) #Creating strategy
+
+    strategy_port = bt.Strategy('Your Portolio Equal', 
+                                [bt.algos.RunMonthly(), 
+                                bt.algos.SelectAll(), 
+                                bt.algos.WeighEqually(),
+                                bt.algos.Rebalance()]) #Creating strategy
+    strategy_spy = bt.Strategy('SPY', 
+                            [bt.algos.RunMonthly(), 
+                            bt.algos.SelectAll(), 
+                            bt.algos.WeighSpecified(**stock_dic_spy),
+                            bt.algos.Rebalance()]) #Creating strategy
+
+    strategy_agg = bt.Strategy('AGG', 
+                            [bt.algos.RunMonthly(), 
+                            bt.algos.SelectAll(), 
+                            bt.algos.WeighSpecified(**stock_dic_agg),
+                            bt.algos.Rebalance()]) #Creating strategy
+
+    test_op = bt.Backtest(strategy_op, data_)
+    results_op = bt.run(test_op)
+
+    test_port = bt.Backtest(strategy_port, data_)
+    results_port = bt.run(test_port)
+
+    test_spy = bt.Backtest(strategy_spy, data)
+    results_spy = bt.run(test_spy)
+    
+    test_agg = bt.Backtest(strategy_agg, data)
+    results_agg = bt.run(test_agg)
+
+   #pie chart
+    results_list = [results_op, results_port]
+    pie_colors = [strategy_color, P6040_color, spy_color, agg_color, '#7496F3', '#B7FA59', 'brown', '#EE4444', 'gold']
+    fig = plot_pie(stock_list, percent_list, pie_colors)
+    #fig.set_size_inches(18.5, 18.5, forward=True) #how to change dimensions since pie is in matplotlib
+    #col1.header("Optomized Portfolio")
+    col1.pyplot(fig)
+
+   #line chart
+    fig = line_chart(results_list)
+    fig.update_layout(width = 750, height = 400)
+    col2.header("Daily Performance")
+    col2.plotly_chart(fig, width = 750, height = 400)
+    
+  #Scatter PLot 
+    results_list.append(results_spy)
+    results_list.append(results_agg)
+
+    results_df = results_to_df(results_list)
+    fig = scatter_plot(results_df) #scatter function in functions
+    fig.update_layout(width = 750, height = 500)
+    col2.plotly_chart(fig, width = 750, height =500)

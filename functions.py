@@ -124,22 +124,13 @@ def scatter_plot(results_df):
     for x in results_df: #fill in two lists with the vol and return %s 
         xaxis_vol.append(float(x.iloc[30][1].replace('%', '')))
         yaxis_return.append(float(x.iloc[29][1].replace('%', '')))
+    
+    size_list =[]
+    for i in range(len(xaxis_vol)): #getting errors on the number of sizes
+        size_list.append(4)
+        
 
-    #probably should make these dynamic
-    labels_ = ['Your Strategy', '60-40', 'SPY', 'AGG'] 
-    #color=['tab:orange','tab:blue','tab:red', 'tab:green']
-
-    # #creating the plot 
-    # fig, ax = plt.subplots()
-    # for x, y, c, lb in zip(xaxis_vol, yaxis_return, color, labels_):
-    #   ax.scatter(x, y, color=c, label = lb)
-
-    # ax.set_title('Risk Vs. Return')
-    # ax.set_ylabel("Monthly Mean (ann.) %")
-    # ax.set_xlabel("Monthly Vol (ann.) %")
-    # ax.legend()
-
-    fig = px.scatter( x= xaxis_vol, y= yaxis_return, size = [4, 4, 4, 4], color = ["Your Strategy", "60-40 Portfolio", "SPY", "AGG"],
+    fig = px.scatter( x= xaxis_vol, y= yaxis_return, size = size_list, color = [results_df[0].iloc[0][1], results_df[1].iloc[0][1], "SPY", "AGG"],
                             color_discrete_sequence=['#A90BFE','#FF7052','#66F3EC', '#67F9AF'],
                             labels={
                             "x": "Monthly Vol (ann.) %",
@@ -162,7 +153,7 @@ def scatter_plot(results_df):
     x=0.1
     
     ))
-    fig.update_layout(margin = dict(l=30, r=0, t=80, b=80))
+    fig.update_layout(margin = dict(l=30, r=0, t=70, b=80))
 
 
 
