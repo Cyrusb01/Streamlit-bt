@@ -988,11 +988,7 @@ elif (option == 'Portfolio Optimizer'):
    #gets Yearly optimal data   
     year_rets = data_.asfreq("Y",method='ffill').to_log_returns().dropna()
     year_opt = year_rets.calc_mean_var_weights().as_format(".2%")
-    fig = optomize_table(year_opt)
-    col1.header("Yearly Data")
-    fig.update_layout(width = 200, height = 300)
-    col1.plotly_chart(fig, width = 200, height = 300)
-
+    
    #table
     fig = optomize_table(year_opt)
     col1.header("Yearly Data")
