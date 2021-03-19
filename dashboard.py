@@ -53,7 +53,7 @@ class WeighSpecified(bt.Algo):
 
 st.sidebar.write("Options")
 
-option = st.sidebar.selectbox("Select an Option", ('Flexible Dashboard', 'BTC Portfolio Dashboard', 'Portfolio Optimizer'))
+option = st.sidebar.selectbox("Select an Option", ('Portfolio Optimizer','Flexible Dashboard', 'BTC Portfolio Dashboard'))
 start_date = '2017-01-01'
 
 
