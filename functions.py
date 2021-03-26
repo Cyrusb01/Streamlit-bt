@@ -69,6 +69,29 @@ def plot_pie(stock_list, percent_list, pie_colors = ['#66F3EC', '#67F9AF', '#F9C
 
     return fig
 
+def plotly_pie(stock_list, percent_list, pie_colors = ['#66F3EC', '#67F9AF', '#F9C515']):
+    
+    fig = px.pie( values = percent_list, names = stock_list, color = stock_list,
+                            color_discrete_sequence= pie_colors,
+                            title="Portfolio Allocation")
+    fig.update_layout(
+    title={
+        'text': "Portfolio Allocation",
+        'y':0.87,
+        'x':0.49,
+        'xanchor': 'center',
+        'yanchor': 'top'},
+    legend=dict(
+    orientation="h",
+    yanchor="bottom",
+    y=-.3,
+    xanchor="left",
+    x=0.0))
+    
+    fig.update_traces(marker=dict(line=dict(color='white', width=1.3)))
+    
+
+    return fig
 def results_to_df(results_list):
     df_list = [] #list of completed dataframes
     

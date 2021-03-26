@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import bt
 import plotly.express as px
 from tabulate import tabulate 
-from functions import alloc_table, balance_table, line_chart, monthly_returns_table, optomize_table, plot_pie, display_stats_combined, results_to_df, highlight_cols, scatter_plot, short_stats_table, stats_table, sum_table, monthly_table
+from functions import alloc_table, balance_table, line_chart, monthly_returns_table, optomize_table, plot_pie, display_stats_combined, results_to_df, highlight_cols, scatter_plot, short_stats_table, stats_table, sum_table, monthly_table, plotly_pie
 
 
 
@@ -35,6 +35,7 @@ data = get_data_f(dontchange)
 # )
 
 
+
 word = "Dashboard"
 #st.title(word)
 
@@ -53,7 +54,7 @@ class WeighSpecified(bt.Algo):
 
 st.sidebar.write("Options")
 
-option = st.sidebar.selectbox("Select an Option", ('Portfolio Optimizer','Flexible Dashboard', 'BTC Portfolio Dashboard'))
+option = st.sidebar.selectbox("Select an Option", ('Flexible Dashboard', 'Portfolio Optimizer','BTC Portfolio Dashboard'))
 start_date = '2017-01-01'
 
 
@@ -397,14 +398,36 @@ elif ( option == 'BTC Portfolio Dashboard'):
    stats_expander.plotly_chart(fig, width = 380)
 
 if ( option == 'Flexible Dashboard'):
+ #styling 
+   st.markdown(
+            f"""
+   <style>
+        .reportview-container .main .block-container{{
+            padding-top: {0}rem;
+            padding-right: {0}rem;
+            padding-left: {1}rem;
+            padding-bottom: {0}rem;
+        }}
+    </style>
+    """,
+            unsafe_allow_html=True,
+        )
+   
+   st.markdown("<h1 style='text-align: center; color: black;'>Create and Backtest a Custom Strategy</h1>", unsafe_allow_html=True)
+  
  #Beta Columns and Containers 
-   col1_s, col2_s = st.sidebar.beta_columns(2)
+   col1_input, col2_input, col_spacer, col_description = st.beta_columns((2,2,1,8))
+   col1_pie, col2_stats, col3_scat = st.beta_columns((2,2,3))
+
    col1, col2 = st.beta_columns((1, 2))
    col3, col4, col5 = st.beta_columns((1,1,3))
    
    col1_top = col1.beta_container()
    col1_middle = col1.beta_container()
    col1_bot = col1.beta_container()
+
+   col3_scat_t = col3_scat.beta_container()
+   col3_scat_b = col3_scat.beta_container()
    
    col2t =col2.beta_container()
    col2b =col2.beta_container()
@@ -416,20 +439,28 @@ if ( option == 'Flexible Dashboard'):
    col1_second = col1.beta_container()
    col2_second = col2.beta_container()
    table = st.beta_container()
-    
+
+ #Text Description 
+   col_description.markdown("<h2 style='text-align: center; color: black;'>Dashboard Features </h2>", unsafe_allow_html=True)
+   col_description.markdown('* **Custom Strategy-** Use the boxes to the left to pick stocks and their allocations')
+   col_description.markdown('* **Pie Chart-** View the allocations of the stocks chosen')
+   col_description.markdown('* **Scatter Plot-** Shows the Risk(Monthly Vol) against Return(Monthly Mean)')
+   col_description.markdown('* **Line Chart-** Displays the porfolio performance, starting with $100 invested')
+   col_description.markdown('* **Monthly Table-** Displays month by month returns for AGG, SPY, Your Strategy, and 60-40 Portfolio')
+
  #Sidebar Inputs
-   stock_choice_1 = col1_s.selectbox( "Ticker 1", ('spy', 'efa', 'iwm', 'vwo', 'ibb', 'agg', 'hyg', 'gld', 'slv', 'tsla', 'aapl', 'msft', 'qqq', 'btc-usd', 'eth-usd')) #get ticker
-   percent_1 = col2_s.text_input( "% Allocation", value = 55, max_chars= 3, ) # get percent
+   stock_choice_1 = col1_input.selectbox( "Ticker 1", ('spy', 'efa', 'iwm', 'vwo', 'ibb', 'agg', 'hyg', 'gld', 'slv', 'tsla', 'aapl', 'msft', 'qqq', 'btc-usd', 'eth-usd')) #get ticker
+   percent_1 = col2_input.text_input( "% Allocation", value = 55, max_chars= 3, ) # get percent
    stock_choice_1 = stock_choice_1.lower() #bt likes lower case 
    #data_1 = bt.get(stock_choice_1, start = start_date) # get the data 
 
-   stock_choice_2 = col1_s.selectbox( "Ticker 2", ('agg', 'spy', 'efa', 'iwm', 'vwo', 'ibb', 'hyg', 'gld', 'slv', 'tsla', 'aapl', 'msft', 'qqq', 'btc-usd', 'eth-usd'))
-   percent_2 = col2_s.text_input( "% Allocation", value = 40, max_chars= 3)
+   stock_choice_2 = col1_input.selectbox( "Ticker 2", ('agg', 'spy', 'efa', 'iwm', 'vwo', 'ibb', 'hyg', 'gld', 'slv', 'tsla', 'aapl', 'msft', 'qqq', 'btc-usd', 'eth-usd'))
+   percent_2 = col2_input.text_input( "% Allocation", value = 40, max_chars= 3)
    stock_choice_2 = stock_choice_2.lower()
    #data_2 = bt.get(stock_choice_2, start = start_date)
 
-   stock_choice_3 = col1_s.selectbox( "Ticker 3", ('btc-usd', 'spy', 'efa', 'iwm', 'vwo', 'ibb', 'agg', 'hyg', 'gld', 'slv', 'tsla', 'aapl', 'msft', 'qqq', 'eth-usd'))
-   percent_3 = col2_s.text_input( "% Allocation", value = 5, max_chars= 3)
+   stock_choice_3 = col1_input.selectbox( "Ticker 3", ('btc-usd', 'spy', 'efa', 'iwm', 'vwo', 'ibb', 'agg', 'hyg', 'gld', 'slv', 'tsla', 'aapl', 'msft', 'qqq', 'eth-usd'))
+   percent_3 = col2_input.text_input( "% Allocation", value = 5, max_chars= 3)
    stock_choice_3 = stock_choice_3.lower()
    #data_3 = bt.get(stock_choice_3, start = start_date)
    
@@ -581,16 +612,18 @@ if ( option == 'Flexible Dashboard'):
 
  #Line Chart
    fig = line_chart(results_list)
-   fig.update_layout(width = 700)
+   fig.update_layout(width = 800, height = 500)
 
    fig2 = line_chart(results_list_reb)
-   fig2.update_layout(width = 700)
+   fig2.update_layout(width = 800, height = 500)
    
    figure = fig
-   box = col2b.checkbox('Compare Rebalancing Options for Your Strategy')
+   box = col3_scat_b.checkbox('Compare Rebalancing Options for Your Strategy')
    if box:
      figure = fig2
-   col2b.plotly_chart(figure)
+   col2b.plotly_chart(figure, width = 800, height = 500)
+   #col3_scat_b.markdown('* Rebalancing refers to taking the current value of the portfolio and re distributing it into the allocations')
+   #col3_scat_b.markdown('* Ex. Bitcoin may grow during the month and now be 10% of your portfolio, if rebalanced monthly, bitcoin will go back to 5% of your portoflio at the end of the month, and the extra money it made will be divided into the SPY and AGG so that at the start of the next month they are 55% and 40% of your portfolio')
    col5.write("-    Click on the legend entries to choose which datasets to display")
 
  #Pie Chart
@@ -606,10 +639,9 @@ if ( option == 'Flexible Dashboard'):
       for i in range(len(percent_list)): #puts all the right values into the percent list 
          percent_list[i] = str(round(data[stock_list_plt[i]].iloc[-1]*100))
 
-   fig = plot_pie(stock_list_plt, percent_list)
-   fig.set_facecolor('#fafafa')
-   col1_top.header("PORTFOLIO ALLOCATION")
-   col1_top.pyplot(fig)
+   fig = plotly_pie(stock_list_plt, percent_list)
+   fig.update_layout(width = 400, height = 400)
+   col1_pie.plotly_chart(fig, width = 400, height = 400)
 
  #Display Results
     
@@ -633,8 +665,8 @@ if ( option == 'Flexible Dashboard'):
  #Scatter of Risk vs Return
 
    fig = scatter_plot(results_df) #scatter function in functions
-   fig.update_layout(width = 750, height = 500)
-   col2t.plotly_chart(fig, width = 750, height =500)
+   fig.update_layout(width = 500, height = 500)
+   col3_scat_t.plotly_chart(fig, width = 500, height =500)
     
  #Allocation Table
    rebalance_list = [3, 4, 5]
@@ -644,27 +676,31 @@ if ( option == 'Flexible Dashboard'):
 
  #Balance Table
    fig = balance_table(results, results_control)
-   fig.update_layout(width = 400, height = 75)
-   col1.plotly_chart(fig, width = 400, height = 75)
+   fig.update_layout(width = 380, height = 75)
+   col1_bot.plotly_chart(fig, width = 380, height = 75)
 
- #Short Stats Table
+ #Short returns(stats) Table
    fig = short_stats_table(results_list)
    fig.update_layout(width = 380, height = 300)
-   col1.header("Return Statistics")
-   col1.plotly_chart(fig, width = 380, height = 300)
+   col1_top.markdown("<h2 style='text-align: center; color: black;'>Return Statistics</h2>", unsafe_allow_html=True)
+   col1_top.plotly_chart(fig, width = 380, height = 300)
 
  #Monthly Table 
-   #my_expander = st.beta_expander("Show Monthly Returns")
+   my_expander = st.beta_expander("Show Monthly Returns", True)
    fig = monthly_table(results_list)
-   fig.update_layout(width = 1100, height = 800)
-   st.plotly_chart(fig, width = 1100, height = 800)
+   fig.update_layout(width = 1200, height = 800)
+   my_expander.plotly_chart(fig, width = 1200, height = 800)
 
  #Stats Table
-   stats_expander = col1.beta_expander("Click to Show Strategy Statistics")
    fig = stats_table(results_list)
-   fig.update_layout(width = 380)
-   stats_expander.plotly_chart(fig, width = 380)
+   fig.update_layout(width = 350, height = 500)
+   fig.update_layout(margin = dict(l=0, r=0, t=80, b=0))
+   col2_stats.plotly_chart(fig, width = 350, height = 500)
 
+ #optomize option 
+  #  opto = col1_bot.button("Optomize Your Portfolio")
+  #  if (opto):
+  #    option = 'Portfolio Optimizer'
 elif (option == 'Portfolio Optimizer'):
  #Beta Columns
    col1_s, col2_s = st.sidebar.beta_columns(2)

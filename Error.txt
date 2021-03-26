@@ -1,0 +1,73 @@
+2021-03-19 20:43:28.551 Uncaught app exception
+
+Traceback (most recent call last):
+
+  File "/home/appuser/.local/lib/python3.7/site-packages/streamlit/script_runner.py", line 333, in _run_script
+
+    exec(code, module.__dict__)
+
+  File "/app/streamlit-bt/dashboard.py", line 770, in <module>
+
+    col1.pyplot(fig)
+
+  File "/home/appuser/.local/lib/python3.7/site-packages/streamlit/elements/pyplot.py", line 93, in pyplot
+
+    self.dg._get_delta_path_str(), image_list_proto, fig, clear_figure, **kwargs
+
+  File "/home/appuser/.local/lib/python3.7/site-packages/streamlit/elements/pyplot.py", line 132, in marshall
+
+    fig.savefig(image, **kwargs)
+
+  File "/home/appuser/.local/lib/python3.7/site-packages/matplotlib/figure.py", line 2311, in savefig
+
+    self.canvas.print_figure(fname, **kwargs)
+
+  File "/home/appuser/.local/lib/python3.7/site-packages/matplotlib/backend_bases.py", line 2193, in print_figure
+
+    self.figure.draw(renderer)
+
+  File "/home/appuser/.local/lib/python3.7/site-packages/matplotlib/artist.py", line 41, in draw_wrapper
+
+    return draw(artist, renderer, *args, **kwargs)
+
+  File "/home/appuser/.local/lib/python3.7/site-packages/matplotlib/figure.py", line 1864, in draw
+
+    renderer, self, artists, self.suppressComposite)
+
+  File "/home/appuser/.local/lib/python3.7/site-packages/matplotlib/image.py", line 131, in _draw_list_compositing_images
+
+    a.draw(renderer)
+
+  File "/home/appuser/.local/lib/python3.7/site-packages/matplotlib/artist.py", line 41, in draw_wrapper
+
+    return draw(artist, renderer, *args, **kwargs)
+
+  File "/home/appuser/.local/lib/python3.7/site-packages/matplotlib/cbook/deprecation.py", line 411, in wrapper
+
+    return func(*inner_args, **inner_kwargs)
+
+  File "/home/appuser/.local/lib/python3.7/site-packages/matplotlib/axes/_base.py", line 2747, in draw
+
+    mimage._draw_list_compositing_images(renderer, self, artists)
+
+  File "/home/appuser/.local/lib/python3.7/site-packages/matplotlib/image.py", line 131, in _draw_list_compositing_images
+
+    a.draw(renderer)
+
+  File "/home/appuser/.local/lib/python3.7/site-packages/matplotlib/artist.py", line 41, in draw_wrapper
+
+    return draw(artist, renderer, *args, **kwargs)
+
+  File "/home/appuser/.local/lib/python3.7/site-packages/matplotlib/text.py", line 681, in draw
+
+    bbox, info, descent = textobj._get_layout(renderer)
+
+  File "/home/appuser/.local/lib/python3.7/site-packages/matplotlib/text.py", line 289, in _get_layout
+
+    ismath="TeX" if self.get_usetex() else False)
+
+  File "/home/appuser/.local/lib/python3.7/site-packages/matplotlib/backends/backend_agg.py", line 238, in get_text_width_height_descent
+
+    font.set_text(s, 0.0, flags=flags)
+
+RuntimeError: In set_text: Could not load glyph (error code 0x14)
