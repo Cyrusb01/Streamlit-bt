@@ -1,6 +1,7 @@
 #%%
 import bt
 from bt.algos import RunDaily, RunMonthly, RunWeekly, run_always 
+import pandas as pd
 
 #This is the class that does the weight band rebalancing, off of a github comment with a few things edited to make it work
 class RebalanceAssetThreshold(bt.Algo):
@@ -100,17 +101,19 @@ class RebalanceAssetThreshold(bt.Algo):
             return True
         return True
 
+using_csv = True
+csv_name = 'raw_data.csv'
 
 #inputs 
 stock_a = 'spy'
 stock_b = 'agg'
 stock_c = 'btc-usd'
 
-percent_a = 10
-percent_b = 30
-percent_c = 60
+percent_a = 55
+percent_b = 40
+percent_c = 5
 
-start_date = '2018-01-01'
+start_date = '2016-12-31'
 
 #I have to do this long way of getting the date because crypto data is everyday, while stocks are weekdays, so this combines the data in the right way 
 data_a = bt.get(stock_a, start = start_date)
@@ -120,6 +123,18 @@ data_c = bt.get(stock_c, start = start_date)
 data = data_a.join(data_b, how='outer')
 data = data.join(data_c, how= 'outer')
 data = data.dropna()
+#data.to_csv('dataw.csv')
+
+if (using_csv):
+    df = pd.read_csv(csv_name)
+    df['Date'] = pd.to_datetime(df['Date'], format='%m/%d/%Y')
+    df = df.set_index("Date")
+    #df.to_csv('data_new.csv')
+
+    stock_a = df.columns[0]
+    stock_b = df.columns[1]
+    stock_c = df.columns[2]
+    data = df
 
 #This is here because to get data we need 'btc-usd' for example, and then when using it in the strategy it has to be 'btcusd'
 stock_a = stock_a.replace('-', '')
@@ -135,7 +150,7 @@ strategy_ = bt.Strategy('Your Strategy', [
                            bt.algos.SelectAll(), 
                            bt.algos.WeighSpecified(**stock_dic), #this is the weighting
                            RebalanceAssetThreshold(), #the rebalancing from this happens daily, (rundaily is above it)
-                           bt.algos.RunMonthly(),
+                           bt.algos.RunQuarterly(),
                            bt.algos.Rebalance() #the normal rebalance happens monthly, (runmonthly is above it)
                            ]) #Creating strategy
 
