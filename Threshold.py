@@ -2,6 +2,11 @@
 import bt
 from bt.algos import RunDaily, RunMonthly, RunWeekly, run_always 
 import pandas as pd
+import os 
+import datetime
+import numpy as np
+import mysql.connector 
+import pandas.io.sql as psql
 
 #This is the class that does the weight band rebalancing, off of a github comment with a few things edited to make it work
 class RebalanceAssetThreshold(bt.Algo):
@@ -101,8 +106,14 @@ class RebalanceAssetThreshold(bt.Algo):
             return True
         return True
 
-using_csv = True
+using_csv = False
 csv_name = 'raw_data.csv'
+
+using_sql = True
+user_sql= os.environ.get('user_sql')
+password_sql= os.environ.get('password_sql')
+host_sql= os.environ.get('host_sql')
+database_="webtools"
 
 #inputs 
 stock_a = 'spy'
@@ -136,6 +147,21 @@ if (using_csv):
     stock_c = df.columns[2]
     data = df
 
+if (using_sql):
+    db = mysql.connector.connect(user= user_sql,password= password_sql,host= host_sql,database="webtools")
+    query="SELECT date, index_name, price FROM Benchmark_indexes where date between '2021-03-22' and '2021-03-26' and index_name in ('SP500','AGGs','Bitcoin') \
+    order by ticker, date"
+    df=psql.read_sql(query, con=db,index_col='date')
+    df6 = pd.pivot_table(df,values='price',index='date',columns=['index_name'])
+    df6.index = pd.to_datetime(df6.index)
+    #df6.to_csv('sqldata.csv')
+    stock_a = df6.columns[0]
+    stock_b = df6.columns[1]
+    stock_c = df6.columns[2]
+    data = df6
+
+
+
 #This is here because to get data we need 'btc-usd' for example, and then when using it in the strategy it has to be 'btcusd'
 stock_a = stock_a.replace('-', '')
 stock_b = stock_b.replace('-', '')
@@ -166,12 +192,18 @@ if filter is not None:
 else:
     data_w = results.backtests[key].security_weights
 
-data_w.to_csv('dataw.csv')
+#data_w.to_csv('dataw.csv')
+
+daily_balance = results._get_series(None).rebase()
+
+daily_balance['Your Strategy'] = daily_balance['Your Strategy']*10000
+
+daily_balance.to_csv('daily_balance.csv')
 
 
 
 #%%
-%matplotlib inline
+#%matplotlib inline
 results.plot()
 results.plot_security_weights()
 results.display()
