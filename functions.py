@@ -92,6 +92,7 @@ def plotly_pie(stock_list, percent_list, pie_colors = ['#66F3EC', '#67F9AF', '#F
     
 
     return fig
+    
 def results_to_df(results_list):
     df_list = [] #list of completed dataframes
     
