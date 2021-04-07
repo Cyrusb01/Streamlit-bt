@@ -11,7 +11,7 @@ strategy_color = '#A90BFE'
 P6040_color = '#FF7052'
 spy_color = '#66F3EC'
 agg_color = '#67F9AF'
-colors = [strategy_color, P6040_color, spy_color, agg_color]
+colors = [strategy_color, P6040_color, spy_color, agg_color, '#EF5BDA', '#3527F5', '#F28585', '#43F22D', '#F1F040']
 
 def line_chart(results_list):
     color_dict = {}
@@ -21,12 +21,13 @@ def line_chart(results_list):
         temp = results_list[i]._get_series(None).rebase()
         result_final = pd.concat([result_final, temp], axis = 1) #result dataframe
         color_dict[result_final.columns[i]] = colors[i] #colors
-    
+
     fig = px.line(result_final, labels=dict(index="", value="", variable=""),
                     title="Portfolio Performance",
                     color_discrete_map=color_dict,
                     template="simple_white"
                     )
+    
     fig.update_yaxes( # the y-axis is in dollars
         tickprefix="$", showgrid=True
     )
@@ -152,10 +153,14 @@ def scatter_plot(results_df):
     size_list =[]
     for i in range(len(xaxis_vol)): #getting errors on the number of sizes
         size_list.append(4)
-        
-
-    fig = px.scatter( x= xaxis_vol, y= yaxis_return, size = size_list, color = [results_df[0].iloc[0][1], results_df[1].iloc[0][1], "SPY", "AGG"],
-                            color_discrete_sequence=['#A90BFE','#FF7052','#66F3EC', '#67F9AF'],
+    
+    labels = []
+    for i in results_df:
+        labels.append(i.iloc[0][1])
+    
+    fig = px.scatter( x= xaxis_vol, y= yaxis_return, size = size_list, color = labels,
+                            #color_discrete_sequence=['#A90BFE','#FF7052','#66F3EC', '#67F9AF'],
+                            color_discrete_sequence= colors,
                             labels={
                             "x": "Monthly Vol (ann.) %",
                             "y": "Monthly Mean (ann.) %",
@@ -433,6 +438,25 @@ def optomize_table(df):
                                         align=['center','center'],
                                         font=dict(color='white', size=10)),
                             cells=dict(values=[df.index, df.Allocation],
+                                        line_color = 'white',
+                                        height = 30,
+                                        font = dict(color = 'black'),
+                                        fill_color = '#dbdbdb' )) ])
+    fig.update_layout(margin = dict(l=0, r=0, t=0, b=0))
+    return fig
+
+def optomize_table_combine(df):
+    
+    #combining 
+    labels = ['<b>Tickers<b>', '<b>Daily<b>', '<b>Monthly<b>', '<b>Quarterly<b>', '<b>Yearly<b>']
+
+    fig = go.Figure(data=[go.Table(
+                            header=dict(values= labels,
+                                        line_color= 'black',
+                                        fill_color= '#a2a4a8',
+                                        align=['center','center'],
+                                        font=dict(color='white', size=10)),
+                            cells=dict(values=[df.index, df.Daily, df.Monthly, df.Quarterly, df.Yearly],
                                         line_color = 'white',
                                         height = 30,
                                         font = dict(color = 'black'),

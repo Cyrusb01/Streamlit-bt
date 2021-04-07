@@ -7,8 +7,14 @@ import matplotlib.pyplot as plt
 import bt
 import plotly.express as px
 from tabulate import tabulate 
-from functions import alloc_table, balance_table, line_chart, monthly_returns_table, optomize_table, plot_pie, display_stats_combined, results_to_df, highlight_cols, scatter_plot, short_stats_table, stats_table, sum_table, monthly_table, plotly_pie
+from functions import alloc_table, balance_table, line_chart, monthly_returns_table, optomize_table, optomize_table_combine, plot_pie, display_stats_combined, results_to_df, highlight_cols, scatter_plot, short_stats_table, stats_table, sum_table, monthly_table, plotly_pie
 
+# [theme]
+# primaryColor="#a90bfe"
+# backgroundColor="#131c4f"
+# secondaryBackgroundColor="#00eead"
+# textColor="#ffffff"
+# font="serif"
 
 
 st.set_page_config(layout="wide") #makes page wider 
@@ -26,6 +32,47 @@ def get_data(dontchange):
 
 dontchange = 0
 data = get_data(dontchange)
+
+@st.cache
+def calculate_controls(dontchange):
+  stock_dic_control = {'spy': float(60)/100, 'agg': float(40)/100, 'vwo': float(0)/100}
+  stock_dic_spy = {'spy': float(100)/100, 'agg': float(0)/100, 'vwo': float(0)/100}
+  stock_dic_agg = {'spy': float(0)/100, 'agg': float(100)/100, 'vwo': float(0)/100}
+                            
+  strategy_control = bt.Strategy('60-40 Portfolio', 
+                          [bt.algos.RunMonthly(), 
+                          bt.algos.SelectAll(), 
+                          bt.algos.WeighSpecified(**stock_dic_control),
+                          bt.algos.Rebalance()]) #Creating strategy
+  strategy_spy = bt.Strategy('SPY', 
+                          [bt.algos.RunMonthly(), 
+                          bt.algos.SelectAll(), 
+                          bt.algos.WeighSpecified(**stock_dic_spy),
+                          bt.algos.Rebalance()]) #Creating strategy
+  strategy_agg = bt.Strategy('AGG', 
+                          [bt.algos.RunMonthly(), 
+                          bt.algos.SelectAll(), 
+                          bt.algos.WeighSpecified(**stock_dic_agg),
+                          bt.algos.Rebalance()]) #Creating strategy
+  test_control = bt.Backtest(strategy_control, data)
+  results_control = bt.run(test_control)
+  
+  test_spy = bt.Backtest(strategy_spy, data)
+  results_spy = bt.run(test_spy)
+  
+  test_agg = bt.Backtest(strategy_agg, data)
+  results_agg = bt.run(test_agg)
+
+  results_return = [results_control, results_spy, results_agg]
+
+  return results_return 
+
+returns = calculate_controls(dontchange)
+
+results_control = returns[0]
+results_spy = returns[1]
+results_agg = returns[2]
+  
 
 # st.markdown(
 #   """
@@ -58,7 +105,7 @@ class WeighSpecified(bt.Algo):
 
 st.sidebar.write("Options")
 
-option = st.sidebar.selectbox("Select an Option", ('BTC Portfolio Dashboard','Flexible Dashboard', 'Portfolio Optimizer'))
+option = st.sidebar.selectbox("Select an Option", ( 'Portfolio Optimizer','BTC Portfolio Dashboard','Flexible Dashboard'))
 start_date = '2017-01-01'
 
 
@@ -304,58 +351,15 @@ elif ( option == 'BTC Portfolio Dashboard'):
    percent_3 = slider_input
    percent_list = [percent_1, percent_2, percent_3]
 
-   #get data seperatly because crypto and reg data dont work together 
-  #  data_1 = bt.get(stock_choice_1, start = start_date)
-  #  data_2 = bt.get(stock_choice_2, start = start_date)
-  #  data_3 = bt.get(stock_choice_3, start = start_date)
-   
-  #Allows for crypto and stock to be in a dataframe
-  #  data = data_1.join(data_2, how='outer')
-  #  data = data.join(data_3, how= 'outer')
-  #  data = data.dropna()
-
    stock_choice_3 = stock_choice_3.replace('-', '') #get data with btc-usd but then bt likes btcusd
 
-    
-    
    stock_dic         = {stock_choice_1: float(percent_1)/100, stock_choice_2: float(percent_2)/100, stock_choice_3: float(percent_3)/100} #dictonary for strat
-   stock_dic_control = {stock_choice_1: float(60)/100, stock_choice_2: float(40)/100, stock_choice_3: float(0)/100} #60-40
-   stock_dic_spy     = {'spy': float(100)/100, 'agg': float(0)/100, stock_choice_3: float(0)/100} #all spy
-   stock_dic_agg     = {'spy': float(0)/100, 'agg': float(100)/100, stock_choice_3: float(0)/100} #all agg
-   
-   
+
    strategy_ = bt.Strategy('Your Strategy', 
                            [bt.algos.RunMonthly(), 
                            bt.algos.SelectAll(), 
                            bt.algos.WeighSpecified(**stock_dic),
                            bt.algos.Rebalance()]) #Creating strategy 
-
-   strategy_control = bt.Strategy('60-40 Portfolio', 
-                           [bt.algos.RunMonthly(), 
-                           bt.algos.SelectAll(), 
-                           bt.algos.WeighSpecified(**stock_dic_control),
-                           bt.algos.Rebalance()]) #Creating strategy
-
-   strategy_spy = bt.Strategy('SPY', 
-                           [bt.algos.RunMonthly(), 
-                           bt.algos.SelectAll(), 
-                           bt.algos.WeighSpecified(**stock_dic_spy),
-                           bt.algos.Rebalance()]) #Creating strategy
-
-   strategy_agg = bt.Strategy('AGG', 
-                           [bt.algos.RunMonthly(), 
-                           bt.algos.SelectAll(), 
-                           bt.algos.WeighSpecified(**stock_dic_agg),
-                           bt.algos.Rebalance()]) #Creating strategy
-   
-   test_control = bt.Backtest(strategy_control, data)
-   results_control = bt.run(test_control)
-
-   test_spy = bt.Backtest(strategy_spy, data)
-   results_spy = bt.run(test_spy)
-   
-   test_agg = bt.Backtest(strategy_agg, data)
-   results_agg = bt.run(test_agg)
    
    test = bt.Backtest(strategy_, data)
    results = bt.run(test)
@@ -542,30 +546,13 @@ if ( option == 'Flexible Dashboard'):
    percent_list = [percent_1, percent_2, percent_3]
    stock_dic = {stock_choice_1: float(percent_1)/100, stock_choice_2: float(percent_2)/100, stock_choice_3: float(percent_3)/100} #dictonary for strat
    
-   stock_dic_control = {'spy': float(60)/100, 'agg': float(40)/100, stock_choice_3: float(0)/100}
-   stock_dic_spy = {'spy': float(100)/100, 'agg': float(0)/100, stock_choice_3: float(0)/100}
-   stock_dic_agg = {'spy': float(0)/100, 'agg': float(100)/100, stock_choice_3: float(0)/100}
-   
+ 
    strategy_ = bt.Strategy('Your Strategy', 
                               [bt.algos.RunMonthly(), 
                               bt.algos.SelectAll(), 
                               bt.algos.WeighSpecified(**stock_dic),
-                              bt.algos.Rebalance()]) #Creating strategy
-   strategy_control = bt.Strategy('60-40 Portfolio', 
-                           [bt.algos.RunMonthly(), 
-                           bt.algos.SelectAll(), 
-                           bt.algos.WeighSpecified(**stock_dic_control),
-                           bt.algos.Rebalance()]) #Creating strategy
-   strategy_spy = bt.Strategy('SPY', 
-                           [bt.algos.RunMonthly(), 
-                           bt.algos.SelectAll(), 
-                           bt.algos.WeighSpecified(**stock_dic_spy),
-                           bt.algos.Rebalance()]) #Creating strategy
-   strategy_agg = bt.Strategy('AGG', 
-                           [bt.algos.RunMonthly(), 
-                           bt.algos.SelectAll(), 
-                           bt.algos.WeighSpecified(**stock_dic_agg),
-                           bt.algos.Rebalance()]) #Creating strategy
+                              bt.algos.Rebalance()]) #Creating strategyj
+                              
    strategy_daily = bt.Strategy('Daily', 
                               [bt.algos.RunDaily(), 
                               bt.algos.SelectAll(), 
@@ -586,7 +573,7 @@ if ( option == 'Flexible Dashboard'):
                               bt.algos.SelectAll(), 
                               bt.algos.WeighSpecified(**stock_dic),
                               bt.algos.Rebalance()]) #Creating strategy
-  #old rebalances
+ #old rebalances
    if (rebalances == 'Daily'):
       strategy_daily = bt.Strategy('Your Strategy Daily', 
                               [bt.algos.RunDaily(), 
@@ -594,22 +581,22 @@ if ( option == 'Flexible Dashboard'):
                               bt.algos.WeighSpecified(**stock_dic),
                               bt.algos.Rebalance()]) #Creating strategy
 
-      strategy_control = bt.Strategy('60-40 Daily', 
-                           [bt.algos.RunDaily(), 
-                           bt.algos.SelectAll(), 
-                           bt.algos.WeighSpecified(**stock_dic_control),
-                           bt.algos.Rebalance()]) #Creating strategy
+      # strategy_control = bt.Strategy('60-40 Daily', 
+      #                      [bt.algos.RunDaily(), 
+      #                      bt.algos.SelectAll(), 
+      #                      bt.algos.WeighSpecified(**stock_dic_control),
+      #                      bt.algos.Rebalance()]) #Creating strategy
    elif (rebalances == 'Monthly'):
       strategy_monthly = bt.Strategy('Monthly', 
                               [bt.algos.RunMonthly(), 
                               bt.algos.SelectAll(), 
                               bt.algos.WeighSpecified(**stock_dic),
                               bt.algos.Rebalance()]) #Creating strategy
-      strategy_control = bt.Strategy('60-40 Portfolio', 
-                           [bt.algos.RunMonthly(), 
-                           bt.algos.SelectAll(), 
-                           bt.algos.WeighSpecified(**stock_dic_control),
-                           bt.algos.Rebalance()]) #Creating strategy                        
+      # strategy_control = bt.Strategy('60-40 Portfolio', 
+      #                      [bt.algos.RunMonthly(), 
+      #                      bt.algos.SelectAll(), 
+      #                      bt.algos.WeighSpecified(**stock_dic_control),
+      #                      bt.algos.Rebalance()]) #Creating strategy                        
    elif (rebalances == 'Yearly'):
       strategy_yearly = bt.Strategy('Your Strategy Yearly', 
                               [bt.algos.RunYearly(), 
@@ -617,11 +604,11 @@ if ( option == 'Flexible Dashboard'):
                               bt.algos.WeighSpecified(**stock_dic),
                               bt.algos.Rebalance()]) #Creating strategy
 
-      strategy_control = bt.Strategy('60-40 Yearly', 
-                           [bt.algos.RunYearly(), 
-                           bt.algos.SelectAll(), 
-                           bt.algos.WeighSpecified(**stock_dic_control),
-                           bt.algos.Rebalance()]) #Creating strategy
+      # strategy_control = bt.Strategy('60-40 Yearly', 
+      #                      [bt.algos.RunYearly(), 
+      #                      bt.algos.SelectAll(), 
+      #                      bt.algos.WeighSpecified(**stock_dic_control),
+      #                      bt.algos.Rebalance()]) #Creating strategy
    elif (rebalances == 'None'):
       strategy_none = bt.Strategy('Your Strategy None', 
                               [bt.algos.RunOnce(), 
@@ -629,26 +616,17 @@ if ( option == 'Flexible Dashboard'):
                               bt.algos.WeighSpecified(**stock_dic),
                               bt.algos.Rebalance()]) #Creating strategy
 
-      strategy_control = bt.Strategy('60-40 None', 
-                           [bt.algos.RunOnce(), 
-                           bt.algos.SelectAll(), 
-                           bt.algos.WeighSpecified(**stock_dic_control),
-                           bt.algos.Rebalance()]) #Creating strategy
+      # strategy_control = bt.Strategy('60-40 None', 
+      #                      [bt.algos.RunOnce(), 
+      #                      bt.algos.SelectAll(), 
+      #                      bt.algos.WeighSpecified(**stock_dic_control),
+      #                      bt.algos.Rebalance()]) #Creating strategy
 
-  #results 
-   test_control = bt.Backtest(strategy_control, data)
-   results_control = bt.run(test_control)
-   
-   test_spy = bt.Backtest(strategy_spy, data)
-   results_spy = bt.run(test_spy)
-   
-   test_agg = bt.Backtest(strategy_agg, data)
-   results_agg = bt.run(test_agg)
 
    test = bt.Backtest(strategy_, data)
    results = bt.run(test)
 
-   #Rebalance Strategies
+ #Rebalance Strategies
    test_d = bt.Backtest(strategy_daily, data)
    results_daily = bt.run(test_d)
 
@@ -757,417 +735,379 @@ if ( option == 'Flexible Dashboard'):
   #    option = 'Portfolio Optimizer'
 
 elif (option == 'Portfolio Optimizer'):
+ 
+ #Styling
+   st.markdown(
+            f"""
+   <style>
+        .reportview-container .main .block-container{{
+            padding-top: {0}rem;
+            padding-right: {1}rem;
+            padding-left: {1}rem;
+            padding-bottom: {0}rem;
+        }}
+    </style>
+    """,
+            unsafe_allow_html=True,
+        )
+   st.markdown("<h1 style='text-align: center; color: black;'>Optomize Your Portfolio</h1>", unsafe_allow_html=True)
+
  #Beta Columns
    col1_s, col2_s = st.sidebar.beta_columns(2)
+   col1_input, col2_input, spacer, col_description = st.beta_columns((4,4,1,8))
    col1, col2 = st.beta_columns((1, 2))
+   col_ex, col_des = st.beta_columns((4,3))
 
+ #Description
+
+   col_description.markdown("<h2 style='text-align: center; color: black;'>Dashboard Features </h2>", unsafe_allow_html=True)
+   col_description.markdown('**What is an optomized portfolio?**')
+   col_description.markdown('An optomized portfolio maximizes the possible returns for a given unit of risk. An optomized portfolio may not generate the highest returns, but the ratio between the risk and return will be the best. This is known as the "Efficient Frontier". ')
+   col_description.markdown('Read more about optimization and the Efficient Frontier here [Investopedia](https://www.investopedia.com/terms/e/efficientfrontier.asp)')
+   
+   col_description.markdown('* **Custom Strategy** Enter tickers to form a portfolio, then watch it be opotimized')
+   col_description.markdown('* **Frequency?** The data frequency is what data the optimization will look at. For example, when choosing daily, the stocks volatility and returns will be checked at the end of each day, and according to the daily data the optimization will occur. For longer term investments, a longer frequency will be more accurate. ')
+   
  #Get data
-   stock_symbols = st.sidebar.text_input("Enter the Stock Tickers Spaced", value = "spy iwm eem efa gld agg hyg" )
-   crypto_symbols = st.sidebar.text_input("Enter Crypto Tickers Spaced", value= 'btc-usd')
-   stock_symbols = stock_symbols.replace(' ', ',')
-   crypto_symbols = crypto_symbols.replace(' ', ',')
-   data_type = st.sidebar.selectbox("Select the Data Frequency", ('Daily Data', 'Monthly Data', 'Quarterly Data', 'Yearly Data')) 
+   col1_input.markdown('#')
+   col2_input.markdown('#')
+   stock_symbols = col1_input.text_input("Enter the Stock Tickers Comma-Seperated", value = "spy,iwm,eem,efa,gld,agg,hyg" )
+   crypto_symbols = col2_input.text_input("Enter Crypto Tickers Comma-Seperated", value= 'btc-usd')
+   stock_symbols = stock_symbols.replace(' ', '')
+   crypto_symbols = crypto_symbols.replace(' ', '')
+   data_type = col1_input.selectbox("Select the Frequency the Data will be Rebalanced for Optomization", ('Daily Data', 'Monthly Data', 'Quarterly Data', 'Yearly Data', 'Compare all')) 
   #  symbols = 'spy,iwm,eem,efa,gld,agg,hyg'
   #  crypto_symbols = 'btc-usd,eth-usd'
-   stock_data = bt.get(stock_symbols, start='1993-01-01')
-   crypto_data = bt.get(crypto_symbols, start='2016-01-01')
+   stock_data = bt.get(stock_symbols, start='2017-01-01')
+   crypto_data = bt.get(crypto_symbols, start='2017-01-01')
 
  #Merge into dataframe
    data_ = crypto_data.join(stock_data, how='outer')
    data_ = data_.dropna()
 
  #Daily optimal
-   if (data_type == "Daily Data"):
-
-   #gets daily optimal data
-    returns = data_.to_log_returns().dropna()
-    daily_opt = returns.calc_mean_var_weights().as_format(".2%")
+   
+  #gets daily optimal data
+   returns = data_.to_log_returns().dropna()
+   daily_opt = returns.calc_mean_var_weights().as_format(".2%")
     
-   #table
-    fig = optomize_table(daily_opt)
-    col1.header("Daily Data")
-    fig.update_layout(width = 300, height = 450)
-    col1.plotly_chart(fig, width = 300, height = 450)
-    
-   #preparing data for charts
-    stock_dic = daily_opt.to_dict()
+  #preparing data for charts
+   stock_dic = daily_opt.to_dict()
 
-    for key in stock_dic: #makes percents numbers 
+   for key in stock_dic: #makes percents numbers 
       stock_dic[key] = float(stock_dic[key].replace('%', ''))
       stock_dic[key] = stock_dic[key]/100
     
-    stock_list = list(stock_dic.keys()) #convert the dictionary into lists for plotting
-    percent_list = list(stock_dic.values())
+   stock_list = list(stock_dic.keys()) #convert the dictionary into lists for plotting
+   percent_list = list(stock_dic.values())
 
-    temp = []
-    temp_stock = []
-    for i in range(len(percent_list)): #Takes out values of 0 
+   temp = []
+   temp_stock = []
+   for i in range(len(percent_list)): #Takes out values of 0 
       if (percent_list[i] != 0):
         temp.append(percent_list[i])
         temp_stock.append(stock_list[i])
 
-    stock_list = temp_stock
-    percent_list= temp
+   stock_list = temp_stock
+   percent_list= temp
 
-    strategy_color = '#A90BFE'
-    P6040_color = '#FF7052'
-    spy_color = '#66F3EC'
-    agg_color = '#67F9AF'
+   strategy_color = '#A90BFE'
+   P6040_color = '#FF7052'
+   spy_color = '#66F3EC'
+   agg_color = '#67F9AF'
     
-    stock_dic_spy     = {'spy': float(100)/100, 'agg': float(0)/100, 'gme': float(0)/100} #all spy
-    stock_dic_agg     = {'spy': float(0)/100, 'agg': float(100)/100, 'gme': float(0)/100} #all agg
-    
-    strategy_op = bt.Strategy('Your Portolio Optomized', 
+   strategy_op = bt.Strategy('Portolio Optomized Daily', 
                                 [bt.algos.RunMonthly(), 
                                 bt.algos.SelectAll(), 
                                 bt.algos.WeighSpecified(**stock_dic),
                                 bt.algos.Rebalance()]) #Creating strategy
 
-    strategy_port = bt.Strategy('Your Portolio Equal', 
+   strategy_port = bt.Strategy('Portolio Equal', 
                                 [bt.algos.RunMonthly(), 
                                 bt.algos.SelectAll(), 
                                 bt.algos.WeighEqually(),
                                 bt.algos.Rebalance()]) #Creating strategy
-    strategy_spy = bt.Strategy('SPY', 
-                            [bt.algos.RunMonthly(), 
-                            bt.algos.SelectAll(), 
-                            bt.algos.WeighSpecified(**stock_dic_spy),
-                            bt.algos.Rebalance()]) #Creating strategy
 
-    strategy_agg = bt.Strategy('AGG', 
-                            [bt.algos.RunMonthly(), 
-                            bt.algos.SelectAll(), 
-                            bt.algos.WeighSpecified(**stock_dic_agg),
-                            bt.algos.Rebalance()]) #Creating strategy
+   test_op = bt.Backtest(strategy_op, data_)
+   results_op_d = bt.run(test_op)
 
-    test_op = bt.Backtest(strategy_op, data_)
-    results_op = bt.run(test_op)
+   test_port = bt.Backtest(strategy_port, data_)
+   results_port = bt.run(test_port)
+  
 
-    test_port = bt.Backtest(strategy_port, data_)
-    results_port = bt.run(test_port)
+   if (data_type == "Daily Data"):
 
-    test_spy = bt.Backtest(strategy_spy, data)
-    results_spy = bt.run(test_spy)
-    
-    test_agg = bt.Backtest(strategy_agg, data)
-    results_agg = bt.run(test_agg)
+  #table
+    fig = optomize_table(daily_opt)
+    col1.header("Daily Data")
+    fig.update_layout(width = 300, height = 450)
+    col1.plotly_chart(fig, width = 300, height = 450)
 
-   #pie chart
-    results_list = [results_op, results_port]
+  #pie chart
+    results_list = [results_op_d, results_port]
     pie_colors = [strategy_color, P6040_color, spy_color, agg_color, '#7496F3', '#B7FA59', 'brown', '#EE4444', 'gold']
-    fig = plot_pie(stock_list, percent_list, pie_colors)
+    fig = plotly_pie(stock_list, percent_list, pie_colors)
     #fig.set_size_inches(18.5, 18.5, forward=True) #how to change dimensions since pie is in matplotlib
     #col1.header("Optomized Portfolio")
-    col1.pyplot(fig)
+    fig.update_layout(width = 500)
+    col1.plotly_chart(fig)
 
-   #line chart
+  #line chart
+    results_list = [results_op_d, results_port, results_spy, results_agg]
     fig = line_chart(results_list)
     fig.update_layout(width = 750, height = 400)
     col2.header("Daily Performance")
     col2.plotly_chart(fig, width = 750, height = 400)
     
-  #Scatter PLot 
-    results_list.append(results_spy)
-    results_list.append(results_agg)
-
+  #Scatter PLot
     results_df = results_to_df(results_list)
     fig = scatter_plot(results_df) #scatter function in functions
     fig.update_layout(width = 750, height = 500)
     col2.plotly_chart(fig, width = 750, height =500)
    
  #Monthly optimal
-   if (data_type == "Monthly Data"):
-
-   #gets daily optimal data
-    returns = data_.asfreq("M",method='ffill').to_log_returns().dropna()
-    mon_opt = returns.calc_mean_var_weights().as_format(".2%")
+   
+  #gets monthly optimal data
+   returns = data_.asfreq("M",method='ffill').to_log_returns().dropna()
+   mon_opt = returns.calc_mean_var_weights().as_format(".2%")
     
-   #table
-    fig = optomize_table(mon_opt)
-    col1.header("Monthly Data")
-    fig.update_layout(width = 300, height = 450)
-    col1.plotly_chart(fig, width = 300, height = 450)
-    
-   #preparing data for charts
-    stock_dic = mon_opt.to_dict()
+  #preparing data for charts
+   stock_dic = mon_opt.to_dict()
 
-    for key in stock_dic: #makes percents numbers 
+   for key in stock_dic: #makes percents numbers 
       stock_dic[key] = float(stock_dic[key].replace('%', ''))
       stock_dic[key] = stock_dic[key]/100
     
-    stock_list = list(stock_dic.keys()) #convert the dictionary into lists for plotting
-    percent_list = list(stock_dic.values())
+   stock_list = list(stock_dic.keys()) #convert the dictionary into lists for plotting
+   percent_list = list(stock_dic.values())
 
-    temp = []
-    temp_stock = []
-    for i in range(len(percent_list)): #Takes out values of 0 
+   temp = []
+   temp_stock = []
+   for i in range(len(percent_list)): #Takes out values of 0 
       if (percent_list[i] != 0):
         temp.append(percent_list[i])
         temp_stock.append(stock_list[i])
 
-    stock_list = temp_stock
-    percent_list= temp
+   stock_list = temp_stock
+   percent_list= temp
 
-    strategy_color = '#A90BFE'
-    P6040_color = '#FF7052'
-    spy_color = '#66F3EC'
-    agg_color = '#67F9AF'
+   strategy_color = '#A90BFE'
+   P6040_color = '#FF7052'
+   spy_color = '#66F3EC'
+   agg_color = '#67F9AF'
     
-    stock_dic_spy     = {'spy': float(100)/100, 'agg': float(0)/100, 'gme': float(0)/100} #all spy
-    stock_dic_agg     = {'spy': float(0)/100, 'agg': float(100)/100, 'gme': float(0)/100} #all agg
-    
-    strategy_op = bt.Strategy('Your Portolio Optomized', 
+   strategy_op = bt.Strategy('Portolio Optomized Monthly', 
                                 [bt.algos.RunMonthly(), 
                                 bt.algos.SelectAll(), 
                                 bt.algos.WeighSpecified(**stock_dic),
                                 bt.algos.Rebalance()]) #Creating strategy
 
-    strategy_port = bt.Strategy('Your Portolio Equal', 
-                                [bt.algos.RunMonthly(), 
-                                bt.algos.SelectAll(), 
-                                bt.algos.WeighEqually(),
-                                bt.algos.Rebalance()]) #Creating strategy
-    strategy_spy = bt.Strategy('SPY', 
-                            [bt.algos.RunMonthly(), 
-                            bt.algos.SelectAll(), 
-                            bt.algos.WeighSpecified(**stock_dic_spy),
-                            bt.algos.Rebalance()]) #Creating strategy
+   test_op = bt.Backtest(strategy_op, data_)
+   results_op_m = bt.run(test_op)
 
-    strategy_agg = bt.Strategy('AGG', 
-                            [bt.algos.RunMonthly(), 
-                            bt.algos.SelectAll(), 
-                            bt.algos.WeighSpecified(**stock_dic_agg),
-                            bt.algos.Rebalance()]) #Creating strategy
+   if (data_type == "Monthly Data"):
+  
+  #table
+    fig = optomize_table(mon_opt)
+    col1.header("Monthly Data")
+    fig.update_layout(width = 300, height = 450)
+    col1.plotly_chart(fig, width = 300, height = 450)
 
-    test_op = bt.Backtest(strategy_op, data_)
-    results_op = bt.run(test_op)
-
-    test_port = bt.Backtest(strategy_port, data_)
-    results_port = bt.run(test_port)
-
-    test_spy = bt.Backtest(strategy_spy, data)
-    results_spy = bt.run(test_spy)
-    
-    test_agg = bt.Backtest(strategy_agg, data)
-    results_agg = bt.run(test_agg)
-
-   #pie chart
-    results_list = [results_op, results_port]
+  #pie chart
+    results_list = [results_op_m, results_port, results_spy, results_agg]
     pie_colors = [strategy_color, P6040_color, spy_color, agg_color, '#7496F3', '#B7FA59', 'brown', '#EE4444', 'gold']
-    fig = plot_pie(stock_list, percent_list, pie_colors)
+    fig = plotly_pie(stock_list, percent_list, pie_colors)
     #fig.set_size_inches(18.5, 18.5, forward=True) #how to change dimensions since pie is in matplotlib
     #col1.header("Optomized Portfolio")
-    col1.pyplot(fig)
+    fig.update_layout(width = 500)
+    col1.plotly_chart(fig)
 
-   #line chart
+  #line chart
     fig = line_chart(results_list)
     fig.update_layout(width = 750, height = 400)
     col2.header("Daily Performance")
     col2.plotly_chart(fig, width = 750, height = 400)
     
   #Scatter PLot 
-    results_list.append(results_spy)
-    results_list.append(results_agg)
-
     results_df = results_to_df(results_list)
     fig = scatter_plot(results_df) #scatter function in functions
     fig.update_layout(width = 750, height = 500)
     col2.plotly_chart(fig, width = 750, height =500)
    
  #Quarterly Optimal 
+   
+  #gets quarterly optimal data   
+   quarterly_rets = data_.asfreq("Q",method='ffill').to_log_returns().dropna()
+   quart_opt = quarterly_rets.calc_mean_var_weights().as_format(".2%")
+
+  #preparing data for charts
+   stock_dic = quart_opt.to_dict()
+
+   for key in stock_dic: #makes percents numbers 
+      stock_dic[key] = float(stock_dic[key].replace('%', ''))
+      stock_dic[key] = stock_dic[key]/100
+    
+   stock_list = list(stock_dic.keys()) #convert the dictionary into lists for plotting
+   percent_list = list(stock_dic.values())
+
+   temp = []
+   temp_stock = []
+   for i in range(len(percent_list)): #Takes out values of 0 
+     if (percent_list[i] != 0):
+       temp.append(percent_list[i])
+       temp_stock.append(stock_list[i])
+
+   stock_list = temp_stock
+   percent_list= temp
+
+   strategy_color = '#A90BFE'
+   P6040_color = '#FF7052'
+   spy_color = '#66F3EC'
+   agg_color = '#67F9AF'
+    
+   strategy_op = bt.Strategy('Portolio Optomized Quarterly', 
+                               [bt.algos.RunMonthly(), 
+                               bt.algos.SelectAll(), 
+                               bt.algos.WeighSpecified(**stock_dic),
+                               bt.algos.Rebalance()]) #Creating strategy
+
+
+   test_op = bt.Backtest(strategy_op, data_)
+   results_op_q = bt.run(test_op)
+
    if (data_type == "Quarterly Data"):
-
-   #gets quarterly optimal data   
-    quarterly_rets = data_.asfreq("Q",method='ffill').to_log_returns().dropna()
-    quart_opt = quarterly_rets.calc_mean_var_weights().as_format(".2%")
-
-   #table
+  
+  #table
     fig = optomize_table(quart_opt)
     col1.header("Quarterly Data")
     fig.update_layout(width = 300, height = 450)
     col1.plotly_chart(fig, width = 300, height = 450)
-    
-   #preparing data for charts
-    stock_dic = quart_opt.to_dict()
 
-    for key in stock_dic: #makes percents numbers 
-      stock_dic[key] = float(stock_dic[key].replace('%', ''))
-      stock_dic[key] = stock_dic[key]/100
-    
-    stock_list = list(stock_dic.keys()) #convert the dictionary into lists for plotting
-    percent_list = list(stock_dic.values())
-
-    temp = []
-    temp_stock = []
-    for i in range(len(percent_list)): #Takes out values of 0 
-      if (percent_list[i] != 0):
-        temp.append(percent_list[i])
-        temp_stock.append(stock_list[i])
-
-    stock_list = temp_stock
-    percent_list= temp
-
-    strategy_color = '#A90BFE'
-    P6040_color = '#FF7052'
-    spy_color = '#66F3EC'
-    agg_color = '#67F9AF'
-    
-    stock_dic_spy     = {'spy': float(100)/100, 'agg': float(0)/100, 'gme': float(0)/100} #all spy
-    stock_dic_agg     = {'spy': float(0)/100, 'agg': float(100)/100, 'gme': float(0)/100} #all agg
-    
-    strategy_op = bt.Strategy('Your Portolio Optomized', 
-                                [bt.algos.RunMonthly(), 
-                                bt.algos.SelectAll(), 
-                                bt.algos.WeighSpecified(**stock_dic),
-                                bt.algos.Rebalance()]) #Creating strategy
-
-    strategy_port = bt.Strategy('Your Portolio Equal', 
-                                [bt.algos.RunMonthly(), 
-                                bt.algos.SelectAll(), 
-                                bt.algos.WeighEqually(),
-                                bt.algos.Rebalance()]) #Creating strategy
-    strategy_spy = bt.Strategy('SPY', 
-                            [bt.algos.RunMonthly(), 
-                            bt.algos.SelectAll(), 
-                            bt.algos.WeighSpecified(**stock_dic_spy),
-                            bt.algos.Rebalance()]) #Creating strategy
-
-    strategy_agg = bt.Strategy('AGG', 
-                            [bt.algos.RunMonthly(), 
-                            bt.algos.SelectAll(), 
-                            bt.algos.WeighSpecified(**stock_dic_agg),
-                            bt.algos.Rebalance()]) #Creating strategy
-
-    test_op = bt.Backtest(strategy_op, data_)
-    results_op = bt.run(test_op)
-
-    test_port = bt.Backtest(strategy_port, data_)
-    results_port = bt.run(test_port)
-
-    test_spy = bt.Backtest(strategy_spy, data)
-    results_spy = bt.run(test_spy)
-    
-    test_agg = bt.Backtest(strategy_agg, data)
-    results_agg = bt.run(test_agg)
-
-   #pie chart
-    results_list = [results_op, results_port]
+  #pie chart
+    results_list = [results_op_q, results_port, results_spy, results_agg]
     pie_colors = [strategy_color, P6040_color, spy_color, agg_color, '#7496F3', '#B7FA59', 'brown', '#EE4444', 'gold']
-    fig = plot_pie(stock_list, percent_list, pie_colors)
+    fig = plotly_pie(stock_list, percent_list, pie_colors)
     #fig.set_size_inches(18.5, 18.5, forward=True) #how to change dimensions since pie is in matplotlib
     #col1.header("Optomized Portfolio")
-    col1.pyplot(fig)
+    fig.update_layout(width = 500)
+    col1.plotly_chart(fig)
 
-   #line chart
-    fig = line_chart(results_list)
-    fig.update_layout(width = 750, height = 400)
-    col2.header("Daily Performance")
-    col2.plotly_chart(fig, width = 750, height = 400)
-    
-   #Scatter PLot 
-    results_list.append(results_spy)
-    results_list.append(results_agg)
-
-    results_df = results_to_df(results_list)
-    fig = scatter_plot(results_df) #scatter function in functions
-    fig.update_layout(width = 750, height = 500)
-    col2.plotly_chart(fig, width = 750, height =500)
-
- #Yearly Optimal 
-   if (data_type == "Yearly Data"):
-
-   #gets Yearly optimal data   
-    year_rets = data_.asfreq("Y",method='ffill').to_log_returns().dropna()
-    year_opt = year_rets.calc_mean_var_weights().as_format(".2%")
-    
-   #table
-    fig = optomize_table(year_opt)
-    col1.header("Yearly Data")
-    fig.update_layout(width = 300, height = 450)
-    col1.plotly_chart(fig, width = 300, height = 450)
-    
-   #preparing data for charts
-    stock_dic = year_opt.to_dict()
-
-    for key in stock_dic: #makes percents numbers 
-      stock_dic[key] = float(stock_dic[key].replace('%', ''))
-      stock_dic[key] = stock_dic[key]/100
-    
-    stock_list = list(stock_dic.keys()) #convert the dictionary into lists for plotting
-    percent_list = list(stock_dic.values())
-
-    temp = []
-    temp_stock = []
-    for i in range(len(percent_list)): #Takes out values of 0 
-      if (percent_list[i] != 0):
-        temp.append(percent_list[i])
-        temp_stock.append(stock_list[i])
-
-    stock_list = temp_stock
-    percent_list= temp
-
-    strategy_color = '#A90BFE'
-    P6040_color = '#FF7052'
-    spy_color = '#66F3EC'
-    agg_color = '#67F9AF'
-    
-    stock_dic_spy     = {'spy': float(100)/100, 'agg': float(0)/100, 'gme': float(0)/100} #all spy
-    stock_dic_agg     = {'spy': float(0)/100, 'agg': float(100)/100, 'gme': float(0)/100} #all agg
-    
-    strategy_op = bt.Strategy('Your Portolio Optomized', 
-                                [bt.algos.RunMonthly(), 
-                                bt.algos.SelectAll(), 
-                                bt.algos.WeighSpecified(**stock_dic),
-                                bt.algos.Rebalance()]) #Creating strategy
-
-    strategy_port = bt.Strategy('Your Portolio Equal', 
-                                [bt.algos.RunMonthly(), 
-                                bt.algos.SelectAll(), 
-                                bt.algos.WeighEqually(),
-                                bt.algos.Rebalance()]) #Creating strategy
-    strategy_spy = bt.Strategy('SPY', 
-                            [bt.algos.RunMonthly(), 
-                            bt.algos.SelectAll(), 
-                            bt.algos.WeighSpecified(**stock_dic_spy),
-                            bt.algos.Rebalance()]) #Creating strategy
-
-    strategy_agg = bt.Strategy('AGG', 
-                            [bt.algos.RunMonthly(), 
-                            bt.algos.SelectAll(), 
-                            bt.algos.WeighSpecified(**stock_dic_agg),
-                            bt.algos.Rebalance()]) #Creating strategy
-
-    test_op = bt.Backtest(strategy_op, data_)
-    results_op = bt.run(test_op)
-
-    test_port = bt.Backtest(strategy_port, data_)
-    results_port = bt.run(test_port)
-
-    test_spy = bt.Backtest(strategy_spy, data)
-    results_spy = bt.run(test_spy)
-    
-    test_agg = bt.Backtest(strategy_agg, data)
-    results_agg = bt.run(test_agg)
-
-   #pie chart
-    results_list = [results_op, results_port]
-    pie_colors = [strategy_color, P6040_color, spy_color, agg_color, '#7496F3', '#B7FA59', 'brown', '#EE4444', 'gold']
-    fig = plot_pie(stock_list, percent_list, pie_colors)
-    #fig.set_size_inches(18.5, 18.5, forward=True) #how to change dimensions since pie is in matplotlib
-    #col1.header("Optomized Portfolio")
-    col1.pyplot(fig)
-
-   #line chart
+  #line chart
     fig = line_chart(results_list)
     fig.update_layout(width = 750, height = 400)
     col2.header("Daily Performance")
     col2.plotly_chart(fig, width = 750, height = 400)
     
   #Scatter PLot 
-    results_list.append(results_spy)
-    results_list.append(results_agg)
-
     results_df = results_to_df(results_list)
     fig = scatter_plot(results_df) #scatter function in functions
     fig.update_layout(width = 750, height = 500)
     col2.plotly_chart(fig, width = 750, height =500)
+
+ #Yearly Optimal 
+   
+  #gets Yearly optimal data   
+   year_rets = data_.asfreq("Y",method='ffill').to_log_returns().dropna()
+   year_opt = year_rets.calc_mean_var_weights().as_format(".2%")
+   
+  #preparing data for charts
+   stock_dic = year_opt.to_dict()
+
+   for key in stock_dic: #makes percents numbers 
+     stock_dic[key] = float(stock_dic[key].replace('%', ''))
+     stock_dic[key] = stock_dic[key]/100
+   
+   stock_list = list(stock_dic.keys()) #convert the dictionary into lists for plotting
+   percent_list = list(stock_dic.values())
+
+   temp = []
+   temp_stock = []
+   for i in range(len(percent_list)): #Takes out values of 0 
+     if (percent_list[i] != 0):
+       temp.append(percent_list[i])
+       temp_stock.append(stock_list[i])
+
+   stock_list = temp_stock
+   percent_list= temp
+
+   strategy_color = '#A90BFE'
+   P6040_color = '#FF7052'
+   spy_color = '#66F3EC'
+   agg_color = '#67F9AF'
+   
+   
+   strategy_op = bt.Strategy('Portolio Optomized Yearly', 
+                               [bt.algos.RunMonthly(), 
+                               bt.algos.SelectAll(), 
+                               bt.algos.WeighSpecified(**stock_dic),
+                               bt.algos.Rebalance()]) #Creating strategy
+
+   test_op = bt.Backtest(strategy_op, data_)
+   results_op_y = bt.run(test_op)
+
+
+   if (data_type == "Yearly Data"):
+  
+  #table
+    fig = optomize_table(year_opt)
+    col1.header("Yearly Data")
+    fig.update_layout(width = 300, height = 450)
+    col1.plotly_chart(fig, width = 300, height = 450)
+
+  #pie chart
+    results_list = [results_op_y, results_port, results_spy, results_agg]
+    pie_colors = [strategy_color, P6040_color, spy_color, agg_color, '#7496F3', '#B7FA59', 'brown', '#EE4444', 'gold']
+    fig = plotly_pie(stock_list, percent_list, pie_colors)
+    #fig.set_size_inches(18.5, 18.5, forward=True) #how to change dimensions since pie is in matplotlib
+    #col1.header("Optomized Portfolio")
+    fig.update_layout(width = 470)
+    col1.plotly_chart(fig, width = 470)
+
+  #line chart
+    fig = line_chart(results_list)
+    fig.update_layout(width = 750, height = 400)
+    col2.header("Daily Performance")
+    col2.plotly_chart(fig, width = 750, height = 400)
+    
+  #Scatter PLot 
+    results_df = results_to_df(results_list)
+    fig = scatter_plot(results_df) #scatter function in functions
+    fig.update_layout(width = 750, height = 500)
+    col2.plotly_chart(fig, width = 750, height =500)
+
+ #Compare Frequencies
+   if(data_type == "Compare all"):
+     df = pd.DataFrame(daily_opt)
+     df1 = pd.DataFrame(mon_opt)
+     df2 = pd.DataFrame(quart_opt)
+     df3 = pd.DataFrame(year_opt)
+     df.columns = ['Daily']
+     df1.columns = ['Monthly']
+     df2.columns = ['Quarterly']
+     df3.columns = ['Yearly']
+     df = df.join(df1, how = 'outer').join(df2, how = 'outer').join(df3, how = 'outer')
+    #Table 
+     col1.markdown('##')
+     fig = optomize_table_combine(df)
+     fig.update_layout(width= 400, height = 300)
+     col1.plotly_chart(fig, width = 400, height = 300)
+    
+    #Line Chart
+     results_list = [results_op_d, results_op_m, results_op_q, results_op_y, results_port, results_spy, results_agg]
+     result_final = pd.DataFrame()
+    
+     fig = line_chart(results_list)
+     fig.update_layout(width = 750, height = 400)
+     col2.plotly_chart(fig, width = 750, height = 400)
+     col_des.write("Click the Legend items to toggle the viewing")
+    
+    #Scatter PLot 
+     results_df = results_to_df(results_list)
+     fig = scatter_plot(results_df) #scatter function in functions
+     fig.update_layout(width = 750, height = 500)
+     col2.plotly_chart(fig, width = 750, height =500)
+
+
+     
+     
+     
