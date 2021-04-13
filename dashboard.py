@@ -761,11 +761,11 @@ elif (option == 'Portfolio Optimizer'):
  #Description
 
    col_description.markdown("<h2 style='text-align: center; color: black;'>Dashboard Features </h2>", unsafe_allow_html=True)
-   col_description.markdown('**What is an optomized portfolio?**')
-   col_description.markdown('An optomized portfolio maximizes the possible returns for a given unit of risk. An optomized portfolio may not generate the highest returns, but the ratio between the risk and return will be the best. This is known as the "Efficient Frontier". ')
+   col_description.markdown('**What is an optimized portfolio?**')
+   col_description.markdown('An optimized portfolio maximizes the possible returns for a given unit of risk. An optimized portfolio may not generate the highest returns, but the ratio between the risk and return will be the best. This is known as the "Efficient Frontier". ')
    col_description.markdown('Read more about optimization and the Efficient Frontier here [Investopedia](https://www.investopedia.com/terms/e/efficientfrontier.asp)')
    
-   col_description.markdown('* **Custom Strategy** Enter tickers to form a portfolio, then watch it be opotimized')
+   col_description.markdown('* **Custom Strategy** Enter tickers to form a portfolio, then watch it be optimized')
    col_description.markdown('* **Frequency?** The data frequency is what data the optimization will look at. For example, when choosing daily, the stocks volatility and returns will be checked at the end of each day, and according to the daily data the optimization will occur. For longer term investments, a longer frequency will be more accurate. ')
    
  #Get data
