@@ -775,7 +775,7 @@ elif (option == 'Portfolio Optimizer'):
    crypto_symbols = col2_input.text_input("Enter Crypto Tickers Comma-Seperated", value= 'btc-usd')
    stock_symbols = stock_symbols.replace(' ', '')
    crypto_symbols = crypto_symbols.replace(' ', '')
-   data_type = col1_input.selectbox("Select the Frequency the Data will be Rebalanced for Optomization", ('Daily Data', 'Monthly Data', 'Quarterly Data', 'Yearly Data', 'Compare all')) 
+   data_type = col1_input.selectbox("Select the Frequency the Data will be Rebalanced for Optimization", ('Daily Data', 'Monthly Data', 'Quarterly Data', 'Yearly Data', 'Compare all')) 
   #  symbols = 'spy,iwm,eem,efa,gld,agg,hyg'
   #  crypto_symbols = 'btc-usd,eth-usd'
    stock_data = bt.get(stock_symbols, start='2017-01-01')
