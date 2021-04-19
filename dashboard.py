@@ -209,7 +209,7 @@ d.image('Pictures/onramplogo.png', width = 150)
 st.sidebar.write("Navigation")
 
 
-option = st.sidebar.radio("Select a Dashboard", ( 'Home','Custom Strategy Dashboard' , 'BTC Portfolio Dashboard', 'Portfolio Optimizer'))
+option = st.sidebar.radio("Select a Dashboard", ( 'Portfolio Optimizer', 'Home','Custom Strategy Dashboard' , 'BTC Portfolio Dashboard', 'Portfolio Optimizer'))
 start_date = '2017-01-01'
 
 
@@ -498,7 +498,7 @@ if ( option == 'Custom Strategy Dashboard'):
  #Text Description 
    col_description.markdown("<h2 style='text-align: center; color: black;'>Dashboard Features </h2>", unsafe_allow_html=True)
    col_description.markdown('* **Custom Strategy-** Use the boxes to the left to pick stocks and their allocations')
-   col_description.markdown('* **Rebalance Threshold** If an asset becomes above x% (you choose) of its chosen allocation, automatically rebalance. Leave 0 to not use')
+   col_description.markdown('* **Rebalance Threshold** If an asset becomes above x% (you choose) of its chosen allocation, automatically rebalance.')
    col_description.markdown('* **Pie Chart-** View the allocations of the stocks chosen')
    col_description.markdown('* **Scatter Plot-** Shows the Risk(Monthly Vol) against Return(Monthly Mean)')
    col_description.markdown('* **Line Chart-** Displays the porfolio performance, starting with $100 invested')
@@ -522,11 +522,12 @@ if ( option == 'Custom Strategy Dashboard'):
    
    col1_input.markdown('#')
    col1_input.markdown('Rebalance Threshold')
-   Rebalance_thresh = col2_input.text_input( "% Threshold", value = 0, max_chars= 3) #rebalance threshold input
+   Rebalance_thresh = col2_input.text_input( "% Threshold *Optional*", max_chars= 3) #rebalance threshold input
    
+   if (Rebalance_thresh == ""):
+     Rebalance_thresh = 120
+
    Rebalance_thresh = float(Rebalance_thresh) / 100
-   if (Rebalance_thresh == 0):
-     Rebalance_thresh = 1.2
 
 
 
@@ -782,7 +783,7 @@ elif (option == 'Portfolio Optimizer'):
 
  #Beta Columns
    col1_s, col2_s = st.sidebar.beta_columns(2)
-   col1_input, col2_input, spacer, col_description = st.beta_columns((4,4,1,8))
+   col1_input, col2_input, spacer, col_description = st.beta_columns((4,3,1,8))
    col1, col2 = st.beta_columns((1, 2))
    col_ex, col_des = st.beta_columns((4,3))
 
@@ -804,10 +805,17 @@ elif (option == 'Portfolio Optimizer'):
    stock_symbols = stock_symbols.replace(' ', '')
    crypto_symbols = crypto_symbols.replace(' ', '')
    data_type = col1_input.selectbox("Select the Frequency the Data will be Rebalanced for Optimization", ('Daily Rebalance', 'Monthly Rebalance', 'Quarterly Rebalance', 'Yearly Rebalance', 'Compare all')) 
+   #col2_input.markdown('#')
+   crypto_max = col2_input.text_input("Enter Maximum Crypto Allocation % *Optional*")
+   opt_type = col1_input.selectbox("Select Optimization Type", ('Efficient Frontier Optimization', "Equal Risk Contribution", "Inverse Volitility"))
   #  symbols = 'spy,iwm,eem,efa,gld,agg,hyg'
   #  crypto_symbols = 'btc-usd,eth-usd'
    stock_data = bt.get(stock_symbols, start='2017-01-01')
    crypto_data = bt.get(crypto_symbols, start='2017-01-01')
+   
+   if(crypto_max == ""):
+    crypto_max = 120
+   crypto_max = float(crypto_max) / 100
 
  #Merge into dataframe
    data_ = crypto_data.join(stock_data, how='outer')
@@ -817,8 +825,13 @@ elif (option == 'Portfolio Optimizer'):
    
   #gets daily optimal data
    returns = data_.to_log_returns().dropna()
-   daily_opt = returns.calc_mean_var_weights().as_format(".2%")
-    
+   if(opt_type == 'Efficient Frontier Optimization'):
+    daily_opt = returns.calc_mean_var_weights().as_format(".2%")
+   if(opt_type == "Equal Risk Contribution"):
+    daily_opt = returns.calc_erc_weights().as_format(".2%")
+   if(opt_type == "Inverse Volitility"):
+    daily_opt = returns.calc_inv_vol_weights().as_format(".2%")
+  
   #preparing data for charts
    stock_dic = daily_opt.to_dict()
 
@@ -839,11 +852,71 @@ elif (option == 'Portfolio Optimizer'):
    stock_list = temp_stock
    percent_list= temp
 
+   #--------------------------------Max Crypto Allocation-------------------------
+   crypto_symbols = crypto_symbols.replace('-', '')
+   crypto_list = crypto_symbols.split(',')
+   crypto_sum = 0
+
+   for i in crypto_list: #checking if we need to adjust because too much crypto 
+     crypto_sum += stock_dic[i] * 100
+
+   if(crypto_sum  > crypto_max*100):
+
+     returns_stocks = stock_data.to_log_returns().dropna()
+     if(opt_type == 'Efficient Frontier Optimization'): #get a new optimization only using stocks 
+      daily_st = returns_stocks.calc_mean_var_weights().as_format(".2%")
+     if(opt_type == "Equal Risk Contribution"):
+      daily_st = returns_stocks.calc_erc_weights().as_format(".2%")
+     if(opt_type == "Inverse Volitility"):
+      daily_st = returns_stocks.calc_inv_vol_weights().as_format(".2%")
+    
+     stock_dic = daily_st.to_dict()
+
+     for key in stock_dic: #makes percents numbers 
+         stock_dic[key] = float(stock_dic[key].replace('%', ''))
+         stock_dic[key] = stock_dic[key]/100
+       
+     stock_list = list(stock_dic.keys()) #convert the dictionary into lists for plotting
+     percent_list = list(stock_dic.values())
+
+     temp = []
+     temp_stock = []
+     for i in range(len(percent_list)): #Takes out values of 0 
+         if (percent_list[i] != 0):
+           temp.append(percent_list[i])
+           temp_stock.append(stock_list[i])
+
+     stock_list_st = temp_stock
+     percent_list_st = temp
+     
+     take_off = ((crypto_max*100) / len(stock_list_st)) / 100 #going to take off an equal percent to acommodate for the cryptos
+     crypto_add = crypto_max / len(crypto_list) #add an equal amount of every crypto
+
+     
+     for i in range(len(percent_list_st)): #adjust stock allocations based on take offnumber 
+       percent_list_st[i] = percent_list_st[i] - take_off
+     
+     for crypto in crypto_list: #add the crypto pricing back in 
+       stock_list_st.append(crypto)
+       percent_list_st.append(crypto_add)
+     
+     stock_list = stock_list_st
+     percent_list = percent_list_st
+
+     new_dict = {}
+     for x, y in zip(stock_list, percent_list):
+       new_dict[x] = y
+     
+     daily_opt = pd.Series(new_dict).as_format(".2%") #make a series like the origonal
+
+     #--------------------------------------------------------------end of max crypto----------------------------------------------------------
+     
    strategy_color = '#A90BFE'
    P6040_color = '#FF7052'
    spy_color = '#66F3EC'
    agg_color = '#67F9AF'
     
+   
    strategy_op = bt.Strategy('Portolio Optomized Daily', 
                                 [bt.algos.RunMonthly(), 
                                 bt.algos.SelectAll(), 
@@ -898,8 +971,14 @@ elif (option == 'Portfolio Optimizer'):
  #Monthly optimal
    
   #gets monthly optimal data
-   returns = data_.asfreq("M",method='ffill').to_log_returns().dropna()
-   mon_opt = returns.calc_mean_var_weights().as_format(".2%")
+   returns_mon = data_.asfreq("M",method='ffill').to_log_returns().dropna()
+   if(opt_type == 'Efficient Frontier Optimization'):
+    mon_opt = returns_mon.calc_mean_var_weights().as_format(".2%")
+   if(opt_type == "Equal Risk Contribution"):
+    mon_opt = returns_mon.calc_erc_weights().as_format(".2%")
+   if(opt_type == "Inverse Volitility"):
+    mon_opt = returns_mon.calc_inv_vol_weights().as_format(".2%")
+   #mon_opt = returns.calc_mean_var_weights().as_format(".2%")
     
   #preparing data for charts
    stock_dic = mon_opt.to_dict()
@@ -920,7 +999,65 @@ elif (option == 'Portfolio Optimizer'):
 
    stock_list = temp_stock
    percent_list= temp
+   
+   #--------------------------------Max Crypto Allocation-------------------------
+   crypto_symbols = crypto_symbols.replace('-', '')
+   crypto_list = crypto_symbols.split(',')
+   crypto_sum = 0
 
+   for i in crypto_list: #checking if we need to adjust because too much crypto 
+     crypto_sum += stock_dic[i] * 100
+
+   if(crypto_sum  > crypto_max*100):
+
+     returns_stocks_m = stock_data.asfreq("M",method='ffill').to_log_returns().dropna()
+     if(opt_type == 'Efficient Frontier Optimization'): #get a new optimization only using stocks 
+      mon_st = returns_stocks_m.calc_mean_var_weights().as_format(".2%")
+     if(opt_type == "Equal Risk Contribution"):
+      mon_st = returns_stocks_m.calc_erc_weights().as_format(".2%")
+     if(opt_type == "Inverse Volitility"):
+      mon_st = returns_stocks_m.calc_inv_vol_weights().as_format(".2%")
+    
+     stock_dic = mon_st.to_dict()
+
+     for key in stock_dic: #makes percents numbers 
+         stock_dic[key] = float(stock_dic[key].replace('%', ''))
+         stock_dic[key] = stock_dic[key]/100
+       
+     stock_list = list(stock_dic.keys()) #convert the dictionary into lists for plotting
+     percent_list = list(stock_dic.values())
+
+     temp = []
+     temp_stock = []
+     for i in range(len(percent_list)): #Takes out values of 0 
+         if (percent_list[i] != 0):
+           temp.append(percent_list[i])
+           temp_stock.append(stock_list[i])
+
+     stock_list_st = temp_stock
+     percent_list_st = temp
+     
+     take_off = ((crypto_max*100) / len(stock_list_st)) / 100 #going to take off an equal percent to acommodate for the cryptos
+     crypto_add = crypto_max / len(crypto_list) #add an equal amount of every crypto
+
+     
+     for i in range(len(percent_list_st)): #adjust stock allocations based on take offnumber 
+       percent_list_st[i] = percent_list_st[i] - take_off
+     
+     for crypto in crypto_list: #add the crypto pricing back in 
+       stock_list_st.append(crypto)
+       percent_list_st.append(crypto_add)
+     
+     stock_list = stock_list_st
+     percent_list = percent_list_st
+
+     new_dict = {}
+     for x, y in zip(stock_list, percent_list):
+       new_dict[x] = y
+     
+     mon_opt = pd.Series(new_dict).as_format(".2%") #make a series like the origonal
+
+   #--------------------------------------------------------------end of max crypto----------------------------------------------------------
    strategy_color = '#A90BFE'
    P6040_color = '#FF7052'
    spy_color = '#66F3EC'
@@ -969,7 +1106,13 @@ elif (option == 'Portfolio Optimizer'):
    
   #gets quarterly optimal data   
    quarterly_rets = data_.asfreq("Q",method='ffill').to_log_returns().dropna()
-   quart_opt = quarterly_rets.calc_mean_var_weights().as_format(".2%")
+   #quart_opt = quarterly_rets.calc_mean_var_weights().as_format(".2%")
+   if(opt_type == 'Efficient Frontier Optimization'):
+    quart_opt = quarterly_rets.calc_mean_var_weights().as_format(".2%")
+   if(opt_type == "Equal Risk Contribution"):
+    quart_opt = quarterly_rets.calc_erc_weights().as_format(".2%")
+   if(opt_type == "Inverse Volitility"):
+    quart_opt = quarterly_rets.calc_inv_vol_weights().as_format(".2%")
 
   #preparing data for charts
    stock_dic = quart_opt.to_dict()
@@ -990,7 +1133,66 @@ elif (option == 'Portfolio Optimizer'):
 
    stock_list = temp_stock
    percent_list= temp
+   
+   #--------------------------------Max Crypto Allocation-------------------------
+   crypto_symbols = crypto_symbols.replace('-', '')
+   crypto_list = crypto_symbols.split(',')
+   crypto_sum = 0
 
+   for i in crypto_list: #checking if we need to adjust because too much crypto 
+     crypto_sum += stock_dic[i] * 100
+
+   if(crypto_sum  > crypto_max*100):
+
+     returns_stocks_q = stock_data.asfreq("Q",method='ffill').to_log_returns().dropna()
+     if(opt_type == 'Efficient Frontier Optimization'): #get a new optimization only using stocks 
+      quar_st = returns_stocks_q.calc_mean_var_weights().as_format(".2%")
+     if(opt_type == "Equal Risk Contribution"):
+      quar_st = returns_stocks_q.calc_erc_weights().as_format(".2%")
+     if(opt_type == "Inverse Volitility"):
+      quar_st = returns_stocks_q.calc_inv_vol_weights().as_format(".2%")
+    
+     stock_dic = quar_st.to_dict()
+
+     for key in stock_dic: #makes percents numbers 
+         stock_dic[key] = float(stock_dic[key].replace('%', ''))
+         stock_dic[key] = stock_dic[key]/100
+       
+     stock_list = list(stock_dic.keys()) #convert the dictionary into lists for plotting
+     percent_list = list(stock_dic.values())
+
+     temp = []
+     temp_stock = []
+     for i in range(len(percent_list)): #Takes out values of 0 
+         if (percent_list[i] != 0):
+           temp.append(percent_list[i])
+           temp_stock.append(stock_list[i])
+
+     stock_list_st = temp_stock
+     percent_list_st = temp
+     
+     take_off = ((crypto_max*100) / len(stock_list_st)) / 100 #going to take off an equal percent to acommodate for the cryptos
+     crypto_add = crypto_max / len(crypto_list) #add an equal amount of every crypto
+
+     
+     for i in range(len(percent_list_st)): #adjust stock allocations based on take offnumber 
+       percent_list_st[i] = percent_list_st[i] - take_off
+     
+     for crypto in crypto_list: #add the crypto pricing back in 
+       stock_list_st.append(crypto)
+       percent_list_st.append(crypto_add)
+     
+     stock_list = stock_list_st
+     percent_list = percent_list_st
+
+     new_dict = {}
+     for x, y in zip(stock_list, percent_list):
+       new_dict[x] = y
+     
+     quart_opt = pd.Series(new_dict).as_format(".2%") #make a series like the origonal
+
+   #--------------------------------------------------------------end of max crypto----------------------------------------------------------
+   
    strategy_color = '#A90BFE'
    P6040_color = '#FF7052'
    spy_color = '#66F3EC'
@@ -1040,8 +1242,14 @@ elif (option == 'Portfolio Optimizer'):
    
   #gets Yearly optimal data   
    year_rets = data_.asfreq("Y",method='ffill').to_log_returns().dropna()
-   year_opt = year_rets.calc_mean_var_weights().as_format(".2%")
-   
+   #year_opt = year_rets.calc_mean_var_weights().as_format(".2%")
+   if(opt_type == 'Efficient Frontier Optimization'):
+    year_opt = year_rets.calc_mean_var_weights().as_format(".2%")
+   if(opt_type == "Equal Risk Contribution"):
+    year_opt = year_rets.calc_erc_weights().as_format(".2%")
+   if(opt_type == "Inverse Volitility"):
+    year_opt = year_rets.calc_inv_vol_weights().as_format(".2%")
+
   #preparing data for charts
    stock_dic = year_opt.to_dict()
 
@@ -1061,6 +1269,65 @@ elif (option == 'Portfolio Optimizer'):
 
    stock_list = temp_stock
    percent_list= temp
+
+   #--------------------------------Max Crypto Allocation-------------------------
+   crypto_symbols = crypto_symbols.replace('-', '')
+   crypto_list = crypto_symbols.split(',')
+   crypto_sum = 0
+
+   for i in crypto_list: #checking if we need to adjust because too much crypto 
+     crypto_sum += stock_dic[i] * 100
+
+   if(crypto_sum  > crypto_max*100):
+
+     returns_stocks_y = stock_data.asfreq("Y",method='ffill').to_log_returns().dropna()
+     if(opt_type == 'Efficient Frontier Optimization'): #get a new optimization only using stocks 
+      year_st = returns_stocks_y.calc_mean_var_weights().as_format(".2%")
+     if(opt_type == "Equal Risk Contribution"):
+      year_st = returns_stocks_y.calc_erc_weights().as_format(".2%")
+     if(opt_type == "Inverse Volitility"):
+      year_st = returns_stocks_y.calc_inv_vol_weights().as_format(".2%")
+    
+     stock_dic = year_st.to_dict()
+
+     for key in stock_dic: #makes percents numbers 
+         stock_dic[key] = float(stock_dic[key].replace('%', ''))
+         stock_dic[key] = stock_dic[key]/100
+       
+     stock_list = list(stock_dic.keys()) #convert the dictionary into lists for plotting
+     percent_list = list(stock_dic.values())
+
+     temp = []
+     temp_stock = []
+     for i in range(len(percent_list)): #Takes out values of 0 
+         if (percent_list[i] != 0):
+           temp.append(percent_list[i])
+           temp_stock.append(stock_list[i])
+
+     stock_list_st = temp_stock
+     percent_list_st = temp
+     
+     take_off = ((crypto_max*100) / len(stock_list_st)) / 100 #going to take off an equal percent to acommodate for the cryptos
+     crypto_add = crypto_max / len(crypto_list) #add an equal amount of every crypto
+
+     
+     for i in range(len(percent_list_st)): #adjust stock allocations based on take offnumber 
+       percent_list_st[i] = percent_list_st[i] - take_off
+     
+     for crypto in crypto_list: #add the crypto pricing back in 
+       stock_list_st.append(crypto)
+       percent_list_st.append(crypto_add)
+     
+     stock_list = stock_list_st
+     percent_list = percent_list_st
+
+     new_dict = {}
+     for x, y in zip(stock_list, percent_list):
+       new_dict[x] = y
+     
+     year_opt = pd.Series(new_dict).as_format(".2%") #make a series like the origonal
+
+   #--------------------------------------------------------------end of max crypto----------------------------------------------------------
 
    strategy_color = '#A90BFE'
    P6040_color = '#FF7052'
