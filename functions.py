@@ -22,7 +22,7 @@ def line_chart(results_list):
         result_final = pd.concat([result_final, temp], axis = 1) #result dataframe
         color_dict[result_final.columns[i]] = colors[i] #colors
 
-    fig = px.line(result_final, labels=dict(index="", value="", variable=""),
+    fig = px.line(result_final, labels=dict(index="Click Legend Icons to Toggle Viewing", value="", variable=""),
                     title="Portfolio Performance",
                     color_discrete_map=color_dict,
                     template="simple_white"
@@ -42,7 +42,7 @@ def line_chart(results_list):
     title={
             'text': "Portfolio Performance",
             'y':.99,
-            'x':0.6,
+            'x':0.5,
             'xanchor': 'center',
             'yanchor': 'top'},)
     #fig.update_layout(height = 500)
@@ -223,15 +223,18 @@ def balance_table(results, results_con):
     final_con = round(series_con.iloc[-1])
     final_res = '$' + str(int(final_res)) #this line gets the $, but the initial final_res is a dataframe object type so this line is neccesary for the $
     final_con = '$' + str(int(final_con))
+
+    name = series_res.columns[0]
+    #st.write(name)
     fig = go.Figure(data=[go.Table(
                                 header=dict(values= labels,
                                             line_color= 'black',
                                             fill_color= '#a2a4a8',
                                             align=['center','center'],
                                             font=dict(color='white', size=10)),
-                                cells=dict(values=[['60-40 Portfolio', 'Your Strategy'], ["$100", "$100"], [final_con, final_res]],
+                                cells=dict(values=[['60-40 Portfolio', series_res.columns[0]], ["$100", "$100"], [final_con, final_res]],
                                             line_color = 'white',
-                                            font = dict(color = 'black'),
+                                            font = dict(color = 'black', size = 11),
                                             fill_color = '#dbdbdb' )) ])
     fig.update_layout(margin = dict(l=0, r=0, t=0, b=0))
     
@@ -242,8 +245,7 @@ def short_stats_table(results_list):
     stats_1 = results_list[1].display_lookback_returns()   #make them into a nice table
 
 
-    labels= ["Stats", "Your Strategy", "60-40 Portfolio", "Difference"]
-
+    labels= ["Stats", stats_0.columns[0], "60-40 Portfolio", "Difference"]
 
     #combining 
     stats_combined = pd.concat([stats_0, stats_1], axis=1)
@@ -269,7 +271,9 @@ def short_stats_table(results_list):
     return fig
 
 def monthly_table(results_list):
+
     
+
     key = results_list[0]._get_backtest(0) #syntax for getting the monthly returns data frame 
     res_mon = results_list[0][key].return_table
     df_r = pd.DataFrame(res_mon)
@@ -316,10 +320,12 @@ def monthly_table(results_list):
         temp.append("YTD")
         year_rows.append(temp)
 
+
+    df_results = results_to_df(results_list) #doing this because we need to get the correct name of the strategy
     res_rows = [] #this creates the list of the "Your Strategy" then all the numbers
     for i in range(len(res_mon.index)):
         temp = []
-        temp += ["Your Strategy"]
+        temp += [df_results[0].iloc[0][1]]
         for j in range(len(res_mon.columns)):
             temp += [str(round(df_r.iloc[i][j]*100, 2)) + '%']
         res_rows.append(temp)
@@ -511,7 +517,7 @@ def stats_table(results_list):
     #creates a datframe with exactly what we need
     df = pd.DataFrame(list(zip(stats_col, strat1_col, strat2_col)), 
                columns =['Stats', 'Your_Strategy', 'Portfolio6040'])
-    labels = ['Stats', "Your Strategy", "60-40 Portfolio"]
+    labels = ['Stats', stats_combined.iloc[0][1], "60-40 Portfolio"]
     
     fig = go.Figure(data=[go.Table(
                             header=dict(values= labels,
