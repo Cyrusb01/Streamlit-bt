@@ -22,7 +22,7 @@ st.set_page_config(layout="wide") #makes page wider
 
 @st.cache
 def get_data(dontchange):
-  s_data = bt.get('spy,efa,iwm,vwo,ibb,agg,hyg,gld,slv,tsla,aapl,msft,qqq', start = '2017-01-01')
+  s_data = bt.get('spy,efa,iwm,vwo,ibb,agg,hyg,slv,tsla,aapl,msft,qqq', start = '2017-01-01') #took out gold for now because of error
   #cry_data = bt.get('btc-usd,eth-usd', start = '2017-01-01')
   btc = bt.get('btc-usd', start = '2017-01-01') #had to implement this seperatly because eth data got cut out one day on yahoo finance 
   eth = bt.get('eth-usd', start = '2017-01-01')
@@ -110,7 +110,7 @@ d.image('Pictures/onramplogo.png', width = 150)
 st.sidebar.write("Navigation")
 
 
-option = st.sidebar.radio("Select a Dashboard", (  'Custom Strategy Dashboard' , 'BTC Portfolio Dashboard', 'Portfolio Optimizer'))
+option = st.sidebar.radio("Select a Dashboard", ( 'Home','Custom Strategy Dashboard' , 'BTC Portfolio Dashboard', 'Portfolio Optimizer'))
 start_date = '2017-01-01'
 
 
