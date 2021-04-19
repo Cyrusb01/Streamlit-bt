@@ -1,4 +1,5 @@
 from logging import error
+from bt.algos import RunYearly
 from pandas._config.config import reset_option
 import streamlit as st 
 import pandas as pd
@@ -103,6 +104,104 @@ class WeighSpecified(bt.Algo):
       # added copy to make sure these are not overwritten
       target.temp["weights"] = self.weights.copy()
       return True
+
+class RebalanceAssetThreshold(bt.Algo):
+    def __init__(self, threshold=0.05):
+        super(RebalanceAssetThreshold, self).__init__()
+        self.threshold = threshold
+        self.is_initial_rebalance = True
+        
+        
+    def __call__(self, target):
+        
+        if 'weights' not in target.temp:
+            return True
+        
+        targets = target.temp['weights']
+        
+        if self.is_initial_rebalance:
+            #print("\n", "We are in initial rebalancing.")
+            
+            # save value because it will change after each call to allocate. use it as base in rebalance calls
+            base = target.value
+            # If cash is set (it should be a value between 0-1 representing the proportion of cash to keep), 
+            # calculate the new 'base'
+            if 'cash' in target.temp:
+                base = base * (1 - target.temp['cash'])
+            for k,v in targets.items():
+                target.rebalance(v, child=k, base=base, update=True)
+            
+            target.perm['previous_children'] = None
+            target.perm["last_rebalance_date"] = target.now # Store the last rebalancing date
+            
+            temp_dict = {} 
+            for cname in target.children:
+                c = target.children[cname]
+                v = c.value
+                temp_dict[cname] = v
+                #print(f"{cname} Initial Value: {v}")
+            target.perm['previous_children'] = temp_dict
+            #print(temp_dict)
+            #print("Initial Portfolio Rebalance Date: ", target.now)
+            #print(60*'-')
+            self.is_initial_rebalance = False
+            return True
+        
+        last_rebalance_date = target.perm["last_rebalance_date"]
+        prev_children = target.perm['previous_children'] # Dict(Ticker:Value)
+        
+        temp_dict = {}
+        # for cname in target.children:
+        #     c = target.children[cname]
+        #     print("Child name", c)
+        #     v = c.value
+        #     print("Value", v)
+        #     v_prev = prev_children[cname]
+        #     temp_dict[cname] = True if (v<v_prev-(v_prev*self.threshold)) or (v>v_prev+(v_prev*self.threshold)) else False
+
+        curr_sum = 0
+        for cname in target.children: #this loop gets the current value of the portfolio
+            v = target.children[cname].value
+            curr_sum += v
+        for cname in target.children:
+            v = target.children[cname].value
+            if (((v/curr_sum) - targets[cname]) < -self.threshold): #this is like (.55 -.60) < -.05
+                temp_dict[cname] = True
+            elif (((v/curr_sum) - targets[cname]) > self.threshold): #this is like (.65 -.60) < -.05 (where .05 would be the threshold)
+                temp_dict[cname] = True
+
+        # If any Security's values deviated, then rebalance.
+        if any(list(temp_dict.values())):
+            #print("\n", "One of children deviated. We need to rebalance.")
+            #print(temp_dict)
+            curr_sum = 0
+            for cname in target.children: #this loop gets the current value of the portfolio
+                v = target.children[cname].value
+                curr_sum += v
+
+            for cname in target.children:
+                v = target.children[cname].value
+                #print((v/curr_sum)) #this is like (.55 -.60) < -.05
+            
+            # save value because it will change after each call to allocate. use it as base in rebalance calls
+            base = target.value
+            # If cash is set (it should be a value between 0-1 representing the proportion of cash to keep), 
+            # calculate the new 'base'
+            if 'cash' in target.temp:
+                base = base * (1 - target.temp['cash'])
+            for k,v in targets.items():
+                target.rebalance(v, child=k, base=base, update=True)
+
+            temp_dict = {}
+            for cname in target.children:
+                c = target.children[cname]
+                v = c.value
+                temp_dict[cname] = v
+            target.perm['previous_children'] = temp_dict
+            target.perm["last_rebalance_date"] = target.now
+            return True
+        return True
+
 
 c, d, e, f, g = st.sidebar.beta_columns((1,1,1,1,1))
 d.image('Pictures/onramplogo.png', width = 150)
@@ -399,6 +498,7 @@ if ( option == 'Custom Strategy Dashboard'):
  #Text Description 
    col_description.markdown("<h2 style='text-align: center; color: black;'>Dashboard Features </h2>", unsafe_allow_html=True)
    col_description.markdown('* **Custom Strategy-** Use the boxes to the left to pick stocks and their allocations')
+   col_description.markdown('* **Rebalance Threshold** If an asset becomes above x% (you choose) of its chosen allocation, automatically rebalance. Leave 0 to not use')
    col_description.markdown('* **Pie Chart-** View the allocations of the stocks chosen')
    col_description.markdown('* **Scatter Plot-** Shows the Risk(Monthly Vol) against Return(Monthly Mean)')
    col_description.markdown('* **Line Chart-** Displays the porfolio performance, starting with $100 invested')
@@ -420,6 +520,16 @@ if ( option == 'Custom Strategy Dashboard'):
    stock_choice_3 = stock_choice_3.lower()
    #data_3 = bt.get(stock_choice_3, start = start_date)
    
+   col1_input.markdown('#')
+   col1_input.markdown('Rebalance Threshold')
+   Rebalance_thresh = col2_input.text_input( "% Threshold", value = 0, max_chars= 3) #rebalance threshold input
+   
+   Rebalance_thresh = float(Rebalance_thresh) / 100
+   if (Rebalance_thresh == 0):
+     Rebalance_thresh = 1.2
+
+
+
    if(float(percent_1)+float(percent_2)+float(percent_3) != 100):
      st.sidebar.error("Allocation Must Equal 100")
    #allows us to combine the datasets to account for the difference in reg vs. Crypto 
@@ -450,30 +560,40 @@ if ( option == 'Custom Strategy Dashboard'):
    
  
    strategy_ = bt.Strategy(your_strategy, 
-                              [bt.algos.RunMonthly(), 
+                              [ 
+                              bt.algos.RunDaily(),
                               bt.algos.SelectAll(), 
                               bt.algos.WeighSpecified(**stock_dic),
+                              RebalanceAssetThreshold(threshold= Rebalance_thresh),
+                              bt.algos.RunMonthly(),
                               bt.algos.Rebalance()]) #Creating strategyj
                               
    strategy_daily = bt.Strategy('Daily', 
                               [bt.algos.RunDaily(), 
-                              bt.algos.SelectAll(), 
+                              bt.algos.SelectAll(),
+                              RebalanceAssetThreshold(threshold= Rebalance_thresh), 
                               bt.algos.WeighSpecified(**stock_dic),
                               bt.algos.Rebalance()]) #Creating strategy
    strategy_monthly = bt.Strategy('Monthly', 
-                              [bt.algos.RunMonthly(), 
+                              [bt.algos.RunDaily(), 
                               bt.algos.SelectAll(), 
                               bt.algos.WeighSpecified(**stock_dic),
+                              RebalanceAssetThreshold(threshold= Rebalance_thresh),
+                              bt.algos.RunMonthly(), 
                               bt.algos.Rebalance()]) #Creating strategy
    strategy_yearly = bt.Strategy('Yearly', 
-                              [bt.algos.RunYearly(), 
+                              [bt.algos.RunDaily(), 
                               bt.algos.SelectAll(), 
                               bt.algos.WeighSpecified(**stock_dic),
+                              RebalanceAssetThreshold(threshold= Rebalance_thresh),
+                              bt.algos.RunYearly(),
                               bt.algos.Rebalance()]) #Creating strategy
    strategy_none = bt.Strategy('No Rebalances', 
-                              [bt.algos.RunOnce(), 
+                              [bt.algos.RunDaily(), 
                               bt.algos.SelectAll(), 
                               bt.algos.WeighSpecified(**stock_dic),
+                              RebalanceAssetThreshold(threshold= Rebalance_thresh),
+                              bt.algos.RunOnce(),
                               bt.algos.Rebalance()]) #Creating strategy
  
  #old rebalances
