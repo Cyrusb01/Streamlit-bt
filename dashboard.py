@@ -137,10 +137,10 @@ if (option == 'Home'):
   picture1, spacer, picture2, picture3 = st.beta_columns((3,1, 4,1))
   picture1.markdown("Create a strategy by choosing assets and their allocations. ->")
   picture1.markdown('#')
-  picture1.image('Pictures/input.png')
+  picture1.image('Pictures/input.PNG')
   picture2.markdown("Analyze the statistics and performance of your newly created strategy")
   picture2.markdown('* Ex. Use line chart to compare returns of popular porfolios/assets to the created one')
-  picture2.image("Pictures/linechart.png")
+  picture2.image("Pictures/linechart.PNG")
 
   #----------------------------------------------BTC Portfolio Dashboard----------------------------------------------------------------------------------------------------
   st.markdown('##')
@@ -158,10 +158,10 @@ if (option == 'Home'):
   picture1, spacer, picture2, picture3 = st.beta_columns((3,1, 4,1))
   picture1.markdown("Use slider to change bitcoin allocation in the portfolio ->")
   picture1.markdown('#')
-  picture1.image('Pictures/btcdashboard.png')
+  picture1.image('Pictures/btcdashboard.PNG')
   picture2.markdown("See how advantageous adding bitcoin to a portfolio can be.")
   picture2.markdown('* Ex. Use line chart to compare returns of strategy with btc to one without')
-  picture2.image("Pictures/btcline.png")
+  picture2.image("Pictures/btcline.PNG")
 
   #----------------------------------------------Portfolio Optimizer ----------------------------------------------------------------------------------------------------
   st.markdown('##')
@@ -180,10 +180,10 @@ if (option == 'Home'):
   picture1.markdown("Enter in assets of your choice, and choose Reblance Frequency->")
   picture1.markdown('*For more information on frequency choices, read on the dashboard itself')
   picture1.markdown('#')
-  picture1.image('Pictures/optimizerinput.png')
+  picture1.image('Pictures/optimizerinput.PNG')
   picture2.markdown("Compare and analyze the perfomance and statistics of the optimized portfolio")
   picture2.markdown('* Ex. Use line chart to compare returns of optimized portfolio to equally weighted ')
-  picture2.image("Pictures/optimizerline.png")
+  picture2.image("Pictures/optimizerline.PNG")
   
 
 
