@@ -220,7 +220,7 @@ d.image('Pictures/onramplogo.png', width = 150)
 st.sidebar.write("Navigation")
 
 
-option = st.sidebar.radio("Select a Dashboard", (  'Portfolio Optimizer', 'Custom Strategy Dashboard' ,'Home','Custom Strategy Dashboard' , 'BTC Portfolio Dashboard', 'Portfolio Optimizer'))
+option = st.sidebar.radio("Select a Dashboard", (  'Home','Custom Strategy Dashboard' , 'BTC Portfolio Dashboard', 'Portfolio Optimizer'))
 start_date = '2017-01-01'
 
 
