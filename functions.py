@@ -392,7 +392,17 @@ def monthly_table(results_list):
     
     color_list = []
     font_color_list = []
-    for i in range(length):
+    color_list += [strategy_color]
+    color_list += [P6040_color]
+    color_list += [spy_color]
+    color_list += [agg_color]
+    color_list += [label_color]
+    font_color_list += ['black']
+    font_color_list += ['black']
+    font_color_list += ['black']
+    font_color_list += ['black']
+    font_color_list += ['white']
+    for i in range(length-1):
         color_list += [strategy_color]
         color_list += [P6040_color]
         color_list += [spy_color]
@@ -403,6 +413,14 @@ def monthly_table(results_list):
         font_color_list += ['black']
         font_color_list += ['black']
         font_color_list += ['white']
+    
+    color_list2 = []
+    for i in range(length):
+        color_list2 += ['#f7f7f7']
+        color_list2 += ['#f7f7f7']
+        color_list2 += ['#f7f7f7']
+        color_list2 += ['#f7f7f7']
+        color_list2 += [label_color]
 
     df.columns = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n']
     #making the table 
@@ -420,7 +438,7 @@ def monthly_table(results_list):
                                         line_color = '#dbdbdb',
                                         height = 30,
                                         font = dict(color = [font_color_list*14]),
-                                        fill_color = [color_list*14] )) ])
+                                        fill_color = [color_list] )) ])
     fig.update_layout(margin = dict(l=0, r=0, t=0, b=0))
 
 
@@ -522,15 +540,15 @@ def stats_table(results_list):
     fig = go.Figure(data=[go.Table(
                             header=dict(values= labels,
                                         line_color= 'black',
-                                        fill_color= '#a2a4a8',
+                                        fill_color= '#131c4f',
                                         align=['center','center'],
                                         font=dict(color='white', size=10)),
                             cells=dict(values=[df.Stats, df.Your_Strategy, df.Portfolio6040],
-                                        line_color = 'white',
+                                        line_color = 'black',
                                         height = 30,
                                         font = dict(color = 'black'),
-                                        fill_color = '#dbdbdb' )) ])
-    fig.update_layout(margin = dict(l=0, r=0, t=0, b=0))
+                                        fill_color = '#f7f7f7' )) ])
+    fig.update_layout(margin = dict(l=2, r=0, t=0, b=0))
 
     return fig
 
