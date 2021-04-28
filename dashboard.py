@@ -459,7 +459,7 @@ if ( option == 'BTC Portfolio Dashboard'):
    #col1_stats_t.markdown('##')
    fig = stats_table(results_list)
    fig.update_layout(width = 380)
-   fig.update_layout(margin = dict(l=0, r=0, t=0, b=0))
+   fig.update_layout(margin = dict(l=1, r=0, t=0, b=0))
    col1_stats_t.header("Statistics")
    col1_stats_t.plotly_chart(fig, width = 380)
 

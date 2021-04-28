@@ -229,14 +229,14 @@ def balance_table(results, results_con):
     fig = go.Figure(data=[go.Table(
                                 header=dict(values= labels,
                                             line_color= 'black',
-                                            fill_color= '#a2a4a8',
+                                            fill_color= '#131c4f',
                                             align=['center','center'],
                                             font=dict(color='white', size=10)),
                                 cells=dict(values=[['60-40 Portfolio', series_res.columns[0]], ["$100", "$100"], [final_con, final_res]],
-                                            line_color = 'white',
+                                            line_color = 'black',
                                             font = dict(color = 'black', size = 11),
-                                            fill_color = '#dbdbdb' )) ])
-    fig.update_layout(margin = dict(l=0, r=0, t=0, b=0))
+                                            fill_color = '#f7f7f7' )) ])
+    fig.update_layout(margin = dict(l=1, r=0, t=0, b=0))
     
     return fig
 
@@ -259,15 +259,15 @@ def short_stats_table(results_list):
     fig = go.Figure(data=[go.Table(
                             header=dict(values= labels,
                                         line_color= 'black',
-                                        fill_color= '#a2a4a8',
+                                        fill_color= '#131c4f',
                                         align=['center','center'],
                                         font=dict(color='white', size=10)),
                             cells=dict(values=[stats_combined.index, stats_combined.Your_Strategy, stats_combined.Portfolio6040, stats_combined.Difference],
-                                        line_color = 'white',
+                                        line_color = 'black',
                                         height = 30,
                                         font = dict(color = 'black'),
-                                        fill_color = '#dbdbdb' )) ])
-    fig.update_layout(margin = dict(l=0, r=0, t=0, b=0))
+                                        fill_color = '#f7f7f7' )) ])
+    fig.update_layout(margin = dict(l=2, r=0, t=0, b=0))
     return fig
 
 def monthly_table(results_list):
@@ -458,15 +458,15 @@ def optomize_table(df):
     fig = go.Figure(data=[go.Table(
                             header=dict(values= labels,
                                         line_color= 'black',
-                                        fill_color= '#a2a4a8',
+                                        fill_color= '#131c4f',
                                         align=['center','center'],
                                         font=dict(color='white', size=10)),
                             cells=dict(values=[df.index, df.Allocation],
-                                        line_color = 'white',
+                                        line_color = 'black',
                                         height = 30,
                                         font = dict(color = 'black'),
-                                        fill_color = '#dbdbdb' )) ])
-    fig.update_layout(margin = dict(l=0, r=0, t=0, b=0))
+                                        fill_color = '#f7f7f7' )) ])
+    fig.update_layout(margin = dict(l=1, r=0, t=0, b=0))
     return fig
 
 def optomize_table_combine(df):
@@ -477,15 +477,15 @@ def optomize_table_combine(df):
     fig = go.Figure(data=[go.Table(
                             header=dict(values= labels,
                                         line_color= 'black',
-                                        fill_color= '#a2a4a8',
+                                        fill_color= '#131c4f',
                                         align=['center','center'],
                                         font=dict(color='white', size=10)),
                             cells=dict(values=[df.index, df.Daily, df.Monthly, df.Quarterly, df.Yearly],
-                                        line_color = 'white',
+                                        line_color = 'black',
                                         height = 30,
                                         font = dict(color = 'black'),
-                                        fill_color = '#dbdbdb' )) ])
-    fig.update_layout(margin = dict(l=0, r=0, t=0, b=0))
+                                        fill_color = '#f7f7f7' )) ])
+    fig.update_layout(margin = dict(l=1, r=0, t=0, b=0))
     return fig
 
 def stats_table(results_list):
